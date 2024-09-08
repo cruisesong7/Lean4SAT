@@ -470,8 +470,8 @@ clean:
 	rm -f "$makefile"
 test:
 	\$(MAKE) -C "\$(CADICALBUILD)" test
-cadical-ks:
-	\$(MAKE) -C "\$(CADICALBUILD)" cadical-ks
+cadical-lean:
+	\$(MAKE) -C "\$(CADICALBUILD)" cadical-lean
 cadical:
 	\$(MAKE) -C "\$(CADICALBUILD)" cadical
 mobical:
@@ -480,7 +480,7 @@ update:
 	\$(MAKE) -C "\$(CADICALBUILD)" update
 format:
 	\$(MAKE) -C "\$(CADICALBUILD)" format
-.PHONY: all cadical-ks cadical clean mobical test format
+.PHONY: all cadical-lean cadical clean mobical test format
 EOF
 
 msg "generated '../makefile' as proxy to ..."

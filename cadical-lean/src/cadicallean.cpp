@@ -2,7 +2,7 @@
 #include <iostream>
 #include <cassert>
 
-CadicalLean::CadicalLean(CaDiCaL::Solver * s, int order) : solver(s), n(order) {
+CadicalLean::CadicalLean(CaDiCaL::Solver * s, int order) : solver(s), n(order), sol_count(0) {
     num_edge_vars = n * (n - 1) / 2;
     assign = new int[num_edge_vars];
     fixed = new bool[num_edge_vars];
@@ -26,6 +26,10 @@ CadicalLean::~CadicalLean () {
 }
 
 void CadicalLean::notify_assignment(int lit, bool is_fixed) {
+    int var = abs(lit) - 1;
+    assign[var] = (lit > 0) ? l_True : l_False;
+    fixed[var] = is_fixed;
+
     // Print the partial assignment
     std::cout << "Partial assignment: ";
     for (int i = 0; i < num_edge_vars; i++) {
@@ -46,7 +50,7 @@ bool CadicalLean::cb_check_found_model (const std::vector<int> & model) {
     assert(model.size() == num_edge_vars);
     sol_count += 1;
 
-    std::cout << "Found model: ";
+    std::cout << "Found model #" << sol_count << ": ";
     std::vector<int> clause;
     for (const auto& lit: model) {
         if (lit > 0) {
@@ -67,8 +71,8 @@ bool CadicalLean::cb_check_found_model (const std::vector<int> & model) {
     }
     std::cout << std::endl;
 
-    // Signal that we have a new clause to add
-    return true;
+    // Signal that we want to continue searching
+    return false;
 }
 
 bool CadicalLean::cb_has_external_clause () {
