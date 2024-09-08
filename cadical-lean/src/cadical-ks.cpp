@@ -346,7 +346,6 @@ bool App::most_likely_existing_cnf_file (const char *path) {
 int App::main (int argc, char **argv) {
 
   int order = 0;
-  int unembeddable_check = 0;
 
   // Handle options which lead to immediate exit first.
 
@@ -518,30 +517,7 @@ int App::main (int argc, char **argv) {
         order = stoi(argv[i]);
         std::cout << "c order = " << order << endl;
       }
-    } else if (!strcmp (argv[i], "--unembeddable-check")) {
-      if (++i == argc)
-        APPERR ("argument to '--unembeddable-check' missing");
-      else if (unembeddable_check != 0)
-        APPERR ("multiple argument '--unembeddable-check %d' and '--unembeddable-check %s'", order, argv[i]);
-      else if (!parse_int_str (argv[i], unembeddable_check))
-        APPERR ("invalid argument in '--unembeddable-check %s'", argv[i]);
-      else if (unembeddable_check < 0 || unembeddable_check > 17)
-        APPERR ("invalid unembeddable-check");
-      else {
-        unembeddable_check = stoi(argv[i]);
-        std::cout << "c unembeddable-check = " << unembeddable_check << endl;
-      }
-    } else if (!strcmp (argv[i], "--perm-out")) {
-      if (++i == argc)
-        APPERR ("argument to '--perm-out' missing");
-      else if (solver->permoutfile != NULL)
-        APPERR ("multiple argument '--perm-out'");
-      else {
-        solver->permoutfile = fopen(argv[i], "w");
-        if (solver->permoutfile == NULL)
-          std::cout << "c could not open " << argv[i] << std::endl, exit(1);
-      }
-    }
+    } 
 #ifndef __WIN32
     else if (!strcmp (argv[i], "-t")) {
       if (++i == argc)
