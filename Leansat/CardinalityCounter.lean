@@ -1,17 +1,6 @@
-import Mathlib.Data.Fin.Basic
-import Mathlib.Data.Fintype.Basic
-import Mathlib.Combinatorics.SimpleGraph.Basic
-import Mathlib.Data.Matrix.Basic
-import Mathlib.LinearAlgebra.Matrix.Symmetric
 import Mathlib.Data.List.Basic
 import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.Ring
-import Lean.Parser.Tactic
-import Mathlib.Tactic.SlimCheck
 import Mathlib.LinearAlgebra.AffineSpace.Combination
-import Mathlib.Tactic.FinCases
-
-open Matrix
 
 --------------------------------------------------
 
