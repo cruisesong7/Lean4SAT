@@ -3,3 +3,9 @@
 /.vscode/*
 *.olean
 .lake
+*.o
+*.obj
+*.so
+*.a
+*.dll
+*.exe
