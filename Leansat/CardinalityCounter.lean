@@ -1,4 +1,4 @@
-import Init.System.IO
+-- import Init.System.IO
 import Leansat.Ramseygood
 import Leansat.Utils
 --------------------------------------------------
@@ -17,7 +17,7 @@ theorem countEdges_correct (input: List String) : countEdges (readInput input) =
         simp_all[readInput, countEdges]
       simp_all
     · simp_all[readInput, countEdges, List.count]
-      by_cases hd.toInt! = 0 <;> simp_all
+      -- by_cases hd.toInt! = 0 <;> simp_all
 
 --------------------------------------------------
 
@@ -81,51 +81,51 @@ def Theorem₁_RHS (k l n : ℕ) (G : SimpleGraph (Fin n)) [DecidableRel G.Adj] 
 def Theorem₁ (k l n : ℕ) (G : SimpleGraph (Fin n)) [DecidableRel G.Adj]: Bool := Theorem₁_RHS k l n G ≥ 0
 
 --------------------------------------------------
-def processProofFile_IO (filePath : String) : IO (List (List String)) := do
-  let content ← IO.FS.readFile filePath
-  let lines := content.splitOn "\n"
-  let solutionLines := lines.filter (λ line ↦ line.startsWith "v")
-  let solutions := solutionLines.map (λ line ↦
-    line.splitOn " " |>.tail!.filter (· ≠ "0")
-  )
-  return solutions
+-- def processProofFile_IO (filePath : String) : IO (List (List String)) := do
+--   let content ← IO.FS.readFile filePath
+--   let lines := content.splitOn "\n"
+--   let solutionLines := lines.filter (λ line ↦ line.startsWith "v")
+--   let solutions := solutionLines.map (λ line ↦
+--     line.splitOn " " |>.tail!.filter (· ≠ "0")
+--   )
+--   return solutions
 
-#eval processProofFile_IO "./data/ramseygood_2_5.proof"
+-- #eval processProofFile_IO "./data/ramseygood_2_5.proof"
 
-def processAndCountEdges_IO (filePath : String) : IO (List ℕ) := do
-  let solutions ← processProofFile_IO filePath
-  let counts := solutions.map (λ solution ↦
-    let adjList := readInput solution
-    countEdges adjList
-  )
-  return counts
-#eval processAndCountEdges_IO "./data/ramseygood_3_4.proof"
+-- def processAndCountEdges_IO (filePath : String) : IO (List ℕ) := do
+--   let solutions ← processProofFile_IO filePath
+--   let counts := solutions.map (λ solution ↦
+--     let adjList := readInput solution
+--     countEdges adjList
+--   )
+--   return counts
+-- #eval processAndCountEdges_IO "./data/ramseygood_3_4.proof"
 
 
-def e_ramseyGraph_IO (k l n : ℕ) : IO ℕ := do
-  let counts ← processAndCountEdges_IO s!"./data/output_{k}_{l}_{n}.proof"
-  match List.minimum? counts with
-  | some count => return count
-  | none => return 0
+-- def e_ramseyGraph_IO (k l n : ℕ) : IO ℕ := do
+--   let counts ← processAndCountEdges_IO s!"./data/output_{k}_{l}_{n}.proof"
+--   match List.minimum? counts with
+--   | some count => return count
+--   | none => return 0
 
-def E_ramseyGraph_IO (k l n: ℕ): IO (ℕ) := do
-  let counts ← processAndCountEdges_IO s!"./data/output_{k}_{l}_{n}.proof"
-  match List.maximum? counts with
-  | some count => return count
-  | none => return 0
+-- def E_ramseyGraph_IO (k l n: ℕ): IO (ℕ) := do
+--   let counts ← processAndCountEdges_IO s!"./data/output_{k}_{l}_{n}.proof"
+--   match List.maximum? counts with
+--   | some count => return count
+--   | none => return 0
 
-#eval e_ramseyGraph_IO 2 5 4
-#eval E_ramseyGraph_IO 3 4 8
+-- #eval e_ramseyGraph_IO 2 5 4
+-- #eval E_ramseyGraph_IO 3 4 8
 
-def Theorem₁_RHS_IO (k l n : ℕ) (G : SimpleGraph (Fin n)) [DecidableRel G.Adj] : IO ℕ := do
-  let terms ← List.range (n + 1) |>.mapM (λ i => do
-    let nᵢ := (Finset.filter (λ v => G.degree v = i) Finset.univ).card
-    let E₁ ← E_ramseyGraph_IO (k - 1) l i
-    let E₂ ← E_ramseyGraph_IO (l - 1) k (n - i - 1)
-    return 2 * E₁ + 2 * E₂ + (3 * i * ((n - i - 1) * (n - 1) * (n - 2))) * nᵢ
-  )
-  return terms.sum
+-- def Theorem₁_RHS_IO (k l n : ℕ) (G : SimpleGraph (Fin n)) [DecidableRel G.Adj] : IO ℕ := do
+--   let terms ← List.range (n + 1) |>.mapM (λ i => do
+--     let nᵢ := (Finset.filter (λ v => G.degree v = i) Finset.univ).card
+--     let E₁ ← E_ramseyGraph_IO (k - 1) l i
+--     let E₂ ← E_ramseyGraph_IO (l - 1) k (n - i - 1)
+--     return 2 * E₁ + 2 * E₂ + (3 * i * ((n - i - 1) * (n - 1) * (n - 2))) * nᵢ
+--   )
+--   return terms.sum
 
-def Theorem₁_IO (k l n : ℕ) (G : SimpleGraph (Fin n)) [DecidableRel G.Adj]: IO Bool := do
-  let RHS ← Theorem₁_RHS_IO k l n G
-  return RHS ≥ 0
+-- def Theorem₁_IO (k l n : ℕ) (G : SimpleGraph (Fin n)) [DecidableRel G.Adj]: IO Bool := do
+--   let RHS ← Theorem₁_RHS_IO k l n G
+--   return RHS ≥ 0

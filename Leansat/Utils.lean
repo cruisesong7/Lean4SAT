@@ -86,7 +86,7 @@ theorem readInput_correct' : ∀ (input : List String) (i:ℕ ), i < (readInput 
       intros h
       by_cases ieq0 : i = 0
 
-    · simp_all[readInput]; by_cases hd.toInt! = 0 <;> simp_all
+    · simp_all[readInput]
     swap
     · simp_all[readInput]
       by_cases hd.toInt! = 0 <;> simp_all
@@ -151,9 +151,6 @@ def graphMk (adjList : List (Option (Fin 2))) : SimpleGraph (Fin ((adjList.lengt
       · simp_all
       · have vltw : v < w := Ne.lt_of_le (vneqw) (le_of_not_lt wltv)
         simp_all
-        have tmp: ¬ w < v := lt_asymm vltw
-        simp only [tmp]
-        tauto
   )
   (by
     -- Prove the irreflexive property (no self-loops)

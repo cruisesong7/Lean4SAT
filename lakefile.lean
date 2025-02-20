@@ -4,14 +4,14 @@ open Lake DSL
 package "leansat" where
   -- add package configuration options here
 
-require mathlib from git "https://github.com/leanprover-community/mathlib4"@"v4.11.0"
+require mathlib from git "https://github.com/leanprover-community/mathlib4"@"v4.16.0-rc1"
 
 lean_lib «Leansat» where
   -- add library configuration options here
 
-@[default_target]
-lean_exe "leansat" where
-  root := `Main
+-- @[default_target]
+-- lean_exe "leansat" where
+--   root := `Main
 
 -- Adding ramseyEncoder from previous project
 lean_exe "ramseyEncoder" where
