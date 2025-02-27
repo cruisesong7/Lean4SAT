@@ -6,14 +6,27 @@ package "leansat" where
 
 require mathlib from git "https://github.com/leanprover-community/mathlib4"@"v4.16.0-rc1"
 
+@[default_target]
 lean_lib «Leansat» where
+-- roots := #[`ReverseFFIWithMathlib]
+defaultFacets := #[`shared]
+moreLinkArgs :=
+  #["-L.lake/packages/aesop/.lake/build/lib/", "-lAesop",
+    "-L.lake/packages/Cli/.lake/build/lib/", "-lCli",
+    "-L.lake/packages/importGraph/.lake/build/lib/", "-lImportGraph",
+    "-L.lake/packages/mathlib/.lake/build/lib/", "-lMathlib",
+    "-L.lake/packages/proofwidgets/.lake/build/lib/", "-lProofWidgets",
+    "-L.lake/packages/Qq/.lake/build/lib/", "-lQq",
+    "-L.lake/packages/batteries/.lake/build/lib/", "-lBatteries",
+    "-L.lake/packages/LeanSearchClient/.lake/build/lib/", "-lLeanSearchClient",
+    "-lLake", "-lLean"]
   -- add library configuration options here
 
--- @[default_target]
 -- lean_exe "leansat" where
 --   root := `Main
 
 -- Adding ramseyEncoder from previous project
+
 lean_exe "ramseyEncoder" where
   srcDir := "code"
   root := `RamseyEncoder

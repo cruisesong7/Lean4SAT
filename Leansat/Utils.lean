@@ -1,12 +1,36 @@
 import Mathlib.Data.List.Basic
 import Mathlib.Data.Matrix.Basic
 import Mathlib.Tactic.Linarith
-import Mathlib.LinearAlgebra.AffineSpace.Combination
 import Mathlib.Combinatorics.SimpleGraph.Finite
-import Leansat.Ramseygood
-
 --------------------------------------------------
--- Function to parse a partial assignment string and return a List of Option (Fin 2)
+/-
+The expected input format is the upper triangular portion of the edge adjacency matrix,
+provided in column-by-column order. In this format, only the entries where the row index
+is less than the column index (i.e., above the main diagonal) are included.
+
+For a 3×3 matrix, the valid positions (edges) are:
+  - Edge between vertex 1 and vertex 2 (position (1,2))
+  - Edge between vertex 1 and vertex 3 (position (1,3))
+  - Edge between vertex 2 and vertex 3 (position (2,3))
+
+For example, suppose the edge assignments are:
+  - Edge (1,2): "1"  (a positive edge, which maps to some 1)
+  - Edge (1,3): "-1" (a negative edge, which maps to some 0)
+  - Edge (2,3): "0"  (an unknown edge, which maps to none)
+
+Then, the input list should be:
+  ["1", "-1", "0"]
+
+The corresponding full matrix representation of the symmetric edge adjacency is:
+
+      v1   v2   v3
+  v1   -    1   -1
+  v2   1    -    0
+  v3  -1    0    -
+
+Here, the upper triangle (above the main diagonal) is provided by the input,
+and the lower triangle is its mirror image. The diagonal is typically omitted.
+-/
 def readInput (input : List String) : List (Option (Fin 2)) :=
   input.map (λ str ↦
     if str.toInt!  = 0 then none  -- Zero maps to None (unknown)
@@ -14,13 +38,13 @@ def readInput (input : List String) : List (Option (Fin 2)) :=
   )
 
 -- #eval readInput ([])
-#eval readInput ("1 -2 3".splitOn " ") -- Expected: [some 1, some 0, some 1]
-#eval readInput ("1 2 3".splitOn " ") -- Expected: [some 1, some 1, some 1]
-#eval readInput ("-1 -2 -3".splitOn " ") -- Expected: [some 0, some 0, some 0]
-#eval readInput ("1 -2 3 4".splitOn " ") -- Expected: [some 1, some 0, some 1]
+-- #eval readInput ("1 -2 3".splitOn " ") -- Expected: [some 1, some 0, some 1]
+-- #eval readInput ("1 2 3".splitOn " ") -- Expected: [some 1, some 1, some 1]
+-- #eval readInput ("-1 -2 -3".splitOn " ") -- Expected: [some 0, some 0, some 0]
+-- #eval readInput ("1 -2 3 4".splitOn " ") -- Expected: [some 1, some 0, some 1]
 
-lemma List.get_ith_eq_tail_get_pred {α}[Inhabited α]: ∀ (l : List α) (i:ℕ), i ≠ 0 → i < l.length → l ≠ []
-  → l.get! i = (l.tail).get! i.pred := by
+lemma List.get_ith_eq_tail_get_pred {α} [Inhabited α]:
+∀ (l : List α) (i : ℕ), i ≠ 0 → i < l.length → l ≠ [] → l.get! i = (l.tail).get! i.pred := by
   intros l i h
   cases l with
   | nil => simp_all
@@ -40,10 +64,7 @@ theorem readInput_correct : ∀ (input : List String) (i:ℕ ), i < (readInput i
   induction input generalizing i with
   | nil => simp_all
   | cons hd tl ih =>
-    apply And.intro
-    rotate_left
-    apply And.intro
-    rotate_right
+    refine ⟨?_, ?_, ?_⟩
     all_goals
       intros h
       by_cases ieq0 : i = 0
@@ -53,14 +74,12 @@ theorem readInput_correct : ∀ (input : List String) (i:ℕ ), i < (readInput i
     pick_goal 3
     · simp_all[readInput]
     all_goals
-      simp_all
-      have tmp : (hd :: tl)[i]!.toInt! = (tl)[i-1]!.toInt! := by
+      have tmp : ((hd :: tl).get! i).toInt! = (tl.get! (i - 1)).toInt! := by
         have _ := (hd::tl).get_ith_eq_tail_get_pred i ieq0 i_bound (by simp[readInput])
         simp_all
-      have i_pred_bound: i - 1 < tl.length := by rw[← Nat.succ_pred ieq0, Nat.succ_lt_succ_iff] at i_bound; exact i_bound
+      have i_pred_bound: i - 1 < tl.length := by rw[← Nat.succ_pred ieq0, List.length, Nat.succ_lt_succ_iff] at i_bound; exact i_bound
       rcases ih i.pred i_pred_bound with ⟨ih1, ih2, ih3⟩
       have tmp' := List.get_ith_eq_tail_get_pred (readInput (hd :: tl)) i ieq0 (by simp[readInput]; exact i_bound) (by simp[readInput])
-      simp at tmp'
       rw [tmp] at h
     · rw [← ih1 h]
       tauto
@@ -95,21 +114,20 @@ theorem readInput_correct' : ∀ (input : List String) (i:ℕ ), i < (readInput 
     pick_goal 3
     · simp_all[readInput]
     all_goals
-      simp_all
       have tmp : (hd :: tl)[i]!.toInt! = (tl)[i-1]!.toInt! := by
         have _ := (hd::tl).get_ith_eq_tail_get_pred i ieq0 i_bound (by simp[readInput])
         simp_all
-      have i_pred_bound: i - 1 < tl.length := by rw[← Nat.succ_pred ieq0, Nat.succ_lt_succ_iff] at i_bound; exact i_bound
+      have i_pred_bound: i - 1 < tl.length := by rw[← Nat.succ_pred ieq0, List.length, Nat.succ_lt_succ_iff] at i_bound; exact i_bound
       have tmp' := List.get_ith_eq_tail_get_pred (readInput (hd :: tl)) i ieq0 (by simp[readInput]; exact i_bound) (by simp[readInput])
       rcases ih i.pred i_pred_bound with ⟨ih1, ih2, ih3⟩
-      simp at tmp'
-      simp [tmp'] at h
+      simp only [tmp'] at h
     · have tmp'' := ih1 h
       simp_all
     · have tmp'' := ih2 h
       simp_all
     · have tmp'' := ih3 h
       simp_all
+
 --------------------------------------------------
 -- Function to compute the vertices (i, j) associated with the k-th edge
 def edge2Ver (k N : ℕ) : Option (ℕ × ℕ) :=

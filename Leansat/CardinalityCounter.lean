@@ -1,4 +1,3 @@
--- import Init.System.IO
 import Leansat.Ramseygood
 import Leansat.Utils
 --------------------------------------------------
@@ -28,9 +27,9 @@ def isEdgesGT (adjList : List (Option (Fin 2))) (maxEdge : ℕ) : Fin (2) :=
 
 def exampleList : List (Option (Fin 2)):= readInput ("1 -2 3".splitOn " ")
 
-#eval isEdgesGT exampleList 1  -- Expected: 1
-#eval isEdgesGT exampleList 2  -- Expected: 1
-#eval isEdgesGT exampleList 3  -- Expected: 0
+-- #eval isEdgesGT exampleList 1  -- Expected: 1
+-- #eval isEdgesGT exampleList 2  -- Expected: 1
+-- #eval isEdgesGT exampleList 3  -- Expected: 0
 
 theorem isEdgesGT_correct (adjList : List (Option (Fin 2))) (maxEdge : ℕ) :
   isEdgesGT adjList maxEdge = 1 ↔ countEdges adjList ≥ maxEdge := by simp [isEdgesGT]
@@ -44,7 +43,7 @@ def processProofFile (content : String) : List (List String) :=
   )
   solutions
 
-#eval processProofFile (RamseyGood 3 4 8)
+-- #eval processProofFile (RamseyGood 3 4 8)
 
 def processAndCountEdges (content : String) : List ℕ :=
   let solutions := processProofFile content
@@ -57,7 +56,7 @@ def processAndCountEdges (content : String) : List ℕ :=
 
 def e_ramseyGraph (k l n : ℕ) : ℕ :=
   let counts := processAndCountEdges (RamseyGood k l n)
-  match List.minimum? counts with
+  match List.min? counts with
   | some count => count
   | none => 0
 
@@ -67,8 +66,8 @@ def E_ramseyGraph (k l n : ℕ) : ℕ :=
   | some count => count
   | none => 0
 
-#eval e_ramseyGraph 2 5 4
-#eval E_ramseyGraph 3 4 8
+-- #eval e_ramseyGraph 2 5 4
+-- #eval E_ramseyGraph 3 4 8
 
 def Theorem₁_RHS (k l n : ℕ) (G : SimpleGraph (Fin n)) [DecidableRel G.Adj] : ℕ :=
   (List.range (n)).map (λ i ↦
