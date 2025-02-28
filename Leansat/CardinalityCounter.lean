@@ -2,6 +2,7 @@ import Leansat.Ramseygood
 import Leansat.Utils
 --------------------------------------------------
 -- Function to count the number of edges in adjList
+@[export countEdges]
 def countEdges (adjList : List (Option (Fin 2))) : ℕ := adjList.count (some 1)
 
 -- theorem countEdges_correct (adjList : List (Option (Fin 2))): eq number of postive literals in the string
@@ -19,7 +20,7 @@ theorem countEdges_correct (input: List String) : countEdges (readInput input) =
       -- by_cases hd.toInt! = 0 <;> simp_all
 
 --------------------------------------------------
-
+@[export isEdgesGT]
 -- Function to check if the number of edges is greater than or equal to maxEdge
 def isEdgesGT (adjList : List (Option (Fin 2))) (maxEdge : ℕ) : Fin (2) :=
   let numEdges := countEdges adjList

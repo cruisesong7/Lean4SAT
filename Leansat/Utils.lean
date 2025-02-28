@@ -31,6 +31,7 @@ The corresponding full matrix representation of the symmetric edge adjacency is:
 Here, the upper triangle (above the main diagonal) is provided by the input,
 and the lower triangle is its mirror image. The diagonal is typically omitted.
 -/
+@[export readInput]
 def readInput (input : List String) : List (Option (Fin 2)) :=
   input.map (λ str ↦
     if str.toInt!  = 0 then none  -- Zero maps to None (unknown)
