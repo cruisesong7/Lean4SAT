@@ -9,7 +9,7 @@ extern "C" lean_object* countEdges(lean_object* w);
 extern "C" void lean_initialize_runtime_module();
 extern "C" void lean_initialize();
 extern "C" void lean_io_mark_end_initialization();
-extern "C" lean_object* initialize_ReverseFFIWithMathlib(uint8_t builtin, lean_object* w);
+extern "C" lean_object* initialize_Leansat(uint8_t builtin, lean_object* w);
 
 int main(int argc, char* argv[]) {
     if (argc < 2) {
@@ -28,7 +28,7 @@ int main(int argc, char* argv[]) {
     lean_initialize_runtime_module();
     lean_initialize();
     
-    lean_object* res = initialize_ReverseFFIWithMathlib(1, lean_io_mk_world());
+    lean_object* res = initialize_Leansat(1, lean_io_mk_world());
     if (lean_io_result_is_ok(res)) {
         lean_dec_ref(res);
     } else {

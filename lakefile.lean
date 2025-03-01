@@ -8,7 +8,7 @@ require mathlib from git "https://github.com/leanprover-community/mathlib4"@"v4.
 
 @[default_target]
 lean_lib «Leansat» where
--- roots := #[`ReverseFFIWithMathlib]
+-- roots := #[`Leansat.Utils,`Leansat.CardinalityCounter]
 defaultFacets := #[`shared]
 moreLinkArgs :=
   #["-L.lake/packages/aesop/.lake/build/lib/", "-lAesop",
