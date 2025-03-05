@@ -31,13 +31,15 @@ The corresponding full matrix representation of the symmetric edge adjacency is:
 Here, the upper triangle (above the main diagonal) is provided by the input,
 and the lower triangle is its mirror image. The diagonal is typically omitted.
 -/
-@[export readInput]
 def readInput (input : List String) : List (Option (Fin 2)) :=
   input.map (λ str ↦
     if str.toInt!  = 0 then none  -- Zero maps to None (unknown)
     else some (if str.toInt! > 0 then 1 else 0)  -- Positive: Some 1, Negative: Some 0
   )
 
+@[export readInput1]
+def readInput1 (input :  String) : List (Option (Fin 2)) :=
+readInput (input.splitOn " ")
 -- #eval readInput ([])
 -- #eval readInput ("1 -2 3".splitOn " ") -- Expected: [some 1, some 0, some 1]
 -- #eval readInput ("1 2 3".splitOn " ") -- Expected: [some 1, some 1, some 1]
@@ -56,7 +58,7 @@ lemma List.get_ith_eq_tail_get_pred {α} [Inhabited α]:
     rw [tmp'] at tmp
     simp only [tmp, List.tail]
 
-theorem readInput_correct : ∀ (input : List String) (i:ℕ ), i < (readInput input).length →
+theorem readInput_correct : ∀ (input : List String) (i : ℕ), i < (readInput input).length →
   ((input.get! i).toInt! > 0 → (readInput input).get! i = some 1) ∧
   ((input.get! i).toInt! < 0 → (readInput input).get! i = some 0) ∧
   ((input.get! i).toInt! = 0 → (readInput input).get! i = none) := by
@@ -89,7 +91,7 @@ theorem readInput_correct : ∀ (input : List String) (i:ℕ ), i < (readInput i
     · rw [← ih3 h]
       tauto
 
-theorem readInput_correct' : ∀ (input : List String) (i:ℕ ), i < (readInput input).length →
+theorem readInput_correct' : ∀ (input : List String) (i : ℕ), i < (readInput input).length →
   ((readInput input).get! i = some 1 →  (input.get! i).toInt! > 0) ∧
   ((readInput input).get! i = some 0 →  (input.get! i).toInt! < 0) ∧
   ((readInput input).get! i = none →  (input.get! i).toInt! = 0) := by
