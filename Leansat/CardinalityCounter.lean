@@ -1,4 +1,4 @@
-import Leansat.Ramseygood
+-- import Leansat.Ramseygood
 import Leansat.Utils
 --------------------------------------------------
 -- Function to count the number of edges in adjList
@@ -6,79 +6,84 @@ import Leansat.Utils
 def countEdges (adjList : List (Option (Fin 2))) : ℕ := adjList.count (some 1)
 
 -- theorem countEdges_correct (adjList : List (Option (Fin 2))): eq number of postive literals in the string
-theorem countEdges_correct (input: List String) : countEdges (readInput input) = (input.countP (λ x ↦ x.toInt! > 0)) := by
+theorem countEdges_correct (input: List Int) : countEdges (readInput_Int input) = (input.countP (λ x ↦ x > 0)) := by
   induction input with
-  | nil => simp_all[readInput, countEdges]
+  | nil => simp_all[readInput_Int, countEdges]
   | cons hd tl ih =>
-    by_cases hd.toInt! > 0
-    · have tmp : hd.toInt! > 0 → countEdges (readInput (hd :: tl)) = countEdges (readInput tl) + 1 := by
+    by_cases hd > 0
+    · have tmp : hd > 0 → countEdges (readInput_Int (hd :: tl)) = countEdges (readInput_Int tl) + 1 := by
         intro H
-        have tmp := (readInput_correct (hd :: tl) 0 (by simp[readInput])).left H
-        simp_all[readInput, countEdges]
+        have tmp := (readInput_Int_correct (hd :: tl) 0 (by simp[readInput_Int])).left H
+        simp_all[readInput_Int, countEdges]
       simp_all
-    · simp_all[readInput, countEdges, List.count]
+    · simp_all[readInput_Int, countEdges, List.count]
       -- by_cases hd.toInt! = 0 <;> simp_all
 
 --------------------------------------------------
-@[export isEdgesGT]
--- Function to check if the number of edges is greater than or equal to maxEdge
-def isEdgesGT (adjList : List (Option (Fin 2))) (maxEdge : ℕ) : Fin (2) :=
+@[export edgesExceedBound]
+-- Function to check if the number of edges is greater than or equal to an upperbound
+def edgesExceedBound (adjList : List (Option (Fin 2))) (upperbound : ℕ) : Fin 2 :=
   let numEdges := countEdges adjList
-  if numEdges >= maxEdge then 1 else 0
+  if numEdges >= upperbound then 1 else 0
 
-def exampleList : List (Option (Fin 2)):= readInput ("1 -2 3".splitOn " ")
-
+-- def exampleList : List (Option (Fin 2)):= readInput_Int ([1,-2,3])
 -- #eval isEdgesGT exampleList 1  -- Expected: 1
 -- #eval isEdgesGT exampleList 2  -- Expected: 1
 -- #eval isEdgesGT exampleList 3  -- Expected: 0
 
-theorem isEdgesGT_correct (adjList : List (Option (Fin 2))) (maxEdge : ℕ) :
-  isEdgesGT adjList maxEdge = 1 ↔ countEdges adjList ≥ maxEdge := by simp [isEdgesGT]
+theorem edgesExceedBound_correct (adjList : List (Option (Fin 2))) (upperbound : ℕ) :
+  edgesExceedBound adjList upperbound = 1 ↔ countEdges adjList ≥ upperbound := by simp [edgesExceedBound]
 --------------------------------------------------
+@[export DegreeExceedBound]
+def DegreeExceedBound (adjList : List (Option (Fin 2))) (upperbound : ℕ) : Fin 2 :=
+  if (SimpleGraph.mk_list adjList).maxDegree ≥ upperbound then 1 else 0
 
-def processProofFile (content : String) : List (List String) :=
-  let lines := content.splitOn "\n"
-  let solutionLines := lines.filter (λ line => line.startsWith "v" ∧ line.endsWith "0")
-  let solutions := solutionLines.map (λ line =>
-    line.splitOn " " |>.tail!.filter (· ≠ "0")
-  )
-  solutions
+theorem DegreeExceedBound_correct (adjList : List (Option (Fin 2))) :
+  ∀ upperbound : ℕ, DegreeExceedBound adjList upperbound = 1 ↔ (SimpleGraph.mk_list adjList).maxDegree ≥ upperbound := by simp[DegreeExceedBound]
+--------------------------------------------------
+-- def processProofFile (content : String) : List (List String) :=
+--   let lines := content.splitOn "\n"
+--   let solutionLines := lines.filter (λ line => line.startsWith "v" ∧ line.endsWith "0")
+--   let solutions := solutionLines.map (λ line =>
+--     line.splitOn " " |>.tail!.filter (· ≠ "0")
+--   )
+--   solutions
 
 -- #eval processProofFile (RamseyGood 3 4 8)
 
-def processAndCountEdges (content : String) : List ℕ :=
-  let solutions := processProofFile content
-  let counts := solutions.map (λ solution =>
-    let adjList := readInput solution
-    countEdges adjList
-  )
-  counts
+-- def processAndCountEdges (content : String) : List ℕ :=
+--   let solutions := processProofFile content
+--   let counts := solutions.map (λ solution =>
+--     let adjList := readInputI solution
+--     countEdges adjList
+--   )
+--   counts
 -- #eval processAndCountEdges ramseygood_2_5
 
-def e_ramseyGraph (k l n : ℕ) : ℕ :=
-  let counts := processAndCountEdges (RamseyGood k l n)
-  match List.min? counts with
-  | some count => count
-  | none => 0
+-- def e_ramseyGraph (k l n : ℕ) : ℕ :=
+--   let counts := processAndCountEdges (RamseyGood k l n)
+--   match List.min? counts with
+--   | some count => count
+--   | none => 0
 
-def E_ramseyGraph (k l n : ℕ) : ℕ :=
-  let counts := processAndCountEdges (RamseyGood k l n)
-  match List.maximum counts with
-  | some count => count
-  | none => 0
+-- def E_ramseyGraph (k l n : ℕ) : ℕ :=
+--   let counts := processAndCountEdges (RamseyGood k l n)
+--   match List.maximum counts with
+--   | some count => count
+--   | none => 0
 
 -- #eval e_ramseyGraph 2 5 4
 -- #eval E_ramseyGraph 3 4 8
 
-def Theorem₁_RHS (k l n : ℕ) (G : SimpleGraph (Fin n)) [DecidableRel G.Adj] : ℕ :=
-  (List.range (n)).map (λ i ↦
-    let nᵢ := (Finset.filter (λ v => G.degree v = i) Finset.univ).card
-    let E₁ := E_ramseyGraph (k - 1) l i
-    let E₂ := E_ramseyGraph (l - 1) k (n - i - 1)
-    2 * E₁ + 2 * E₂ + (3 * i * ((n - i - 1) * (n - 1) * (n - 2))) * nᵢ
-  ) |>.sum
+-- def Theorem₁_RHS (k l n : ℕ) (G : SimpleGraph (Fin n)) [DecidableRel G.Adj] : ℕ :=
+--   (List.range (n)).map (λ i ↦
+--     let nᵢ := (Finset.filter (λ v => G.degree v = i) Finset.univ).card
+--     let E₁ := E_ramseyGraph (k - 1) l i
+--     let E₂ := E_ramseyGraph (l - 1) k (n - i - 1)
+--     2 * E₁ + 2 * E₂ + (3 * i * ((n - i - 1) * (n - 1) * (n - 2))) * nᵢ
+--   ) |>.sum
 
-def Theorem₁ (k l n : ℕ) (G : SimpleGraph (Fin n)) [DecidableRel G.Adj]: Bool := Theorem₁_RHS k l n G ≥ 0
+-- def Theorem₁ (k l n : ℕ) (G : SimpleGraph (Fin n)) [DecidableRel G.Adj]: Bool := Theorem₁_RHS k l n G ≥ 0
 
 --------------------------------------------------
 -- def processProofFile_IO (filePath : String) : IO (List (List String)) := do

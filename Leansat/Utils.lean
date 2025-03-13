@@ -31,15 +31,20 @@ The corresponding full matrix representation of the symmetric edge adjacency is:
 Here, the upper triangle (above the main diagonal) is provided by the input,
 and the lower triangle is its mirror image. The diagonal is typically omitted.
 -/
-def readInput (input : List String) : List (Option (Fin 2)) :=
-  input.map (λ str ↦
-    if str.toInt!  = 0 then none  -- Zero maps to None (unknown)
-    else some (if str.toInt! > 0 then 1 else 0)  -- Positive: Some 1, Negative: Some 0
+
+@[export readInput_Int]
+def readInput_Int(input : List Int) : List (Option (Fin 2)) :=
+  input.map (λ x ↦
+    if x  = 0 then none  -- Zero maps to None (unknown)
+    else some (if x > 0 then 1 else 0)  -- Positive: Some 1, Negative: Some 0
   )
 
-@[export readInput1]
-def readInput1 (input :  String) : List (Option (Fin 2)) :=
-readInput (input.splitOn " ")
+def readInput_Str(input : List String) : List (Option (Fin 2)) :=
+  readInput_Int (input.map (λ str ↦ str.toInt!))
+
+-- @[export readInput1]
+-- def readInput1 (input :  String) : List (Option (Fin 2)) :=
+-- readInput (input.splitOn " ")
 -- #eval readInput ([])
 -- #eval readInput ("1 -2 3".splitOn " ") -- Expected: [some 1, some 0, some 1]
 -- #eval readInput ("1 2 3".splitOn " ") -- Expected: [some 1, some 1, some 1]
@@ -58,12 +63,12 @@ lemma List.get_ith_eq_tail_get_pred {α} [Inhabited α]:
     rw [tmp'] at tmp
     simp only [tmp, List.tail]
 
-theorem readInput_correct : ∀ (input : List String) (i : ℕ), i < (readInput input).length →
-  ((input.get! i).toInt! > 0 → (readInput input).get! i = some 1) ∧
-  ((input.get! i).toInt! < 0 → (readInput input).get! i = some 0) ∧
-  ((input.get! i).toInt! = 0 → (readInput input).get! i = none) := by
+theorem readInput_Int_correct : ∀ (input : List Int) (i : ℕ), i < (readInput_Int input).length →
+  ((input.get! i) > 0 → (readInput_Int input).get! i = some 1) ∧
+  ((input.get! i) < 0 → (readInput_Int input).get! i = some 0) ∧
+  ((input.get! i) = 0 → (readInput_Int input).get! i = none) := by
   intros input i i_bound
-  simp [readInput] at i_bound
+  simp [readInput_Int] at i_bound
   induction input generalizing i with
   | nil => simp_all
   | cons hd tl ih =>
@@ -71,18 +76,18 @@ theorem readInput_correct : ∀ (input : List String) (i : ℕ), i < (readInput 
     all_goals
       intros h
       by_cases ieq0 : i = 0
-    · simp_all[readInput]; by_contra; simp_all
+    · simp_all[readInput_Int]; by_contra; simp_all
     swap
-    · simp_all[readInput]; by_cases hd.toInt! = 0 <;> simp_all; linarith
+    · simp_all[readInput_Int]; by_cases hd = 0 <;> simp_all; linarith
     pick_goal 3
-    · simp_all[readInput]
+    · simp_all[readInput_Int]
     all_goals
-      have tmp : ((hd :: tl).get! i).toInt! = (tl.get! (i - 1)).toInt! := by
-        have _ := (hd::tl).get_ith_eq_tail_get_pred i ieq0 i_bound (by simp[readInput])
-        simp_all
+      have tmp : ((hd :: tl).get! i) = (tl.get! (i - 1)) := by
+        have _ := (hd::tl).get_ith_eq_tail_get_pred i ieq0 i_bound (by simp[readInput_Int])
+        tauto
       have i_pred_bound: i - 1 < tl.length := by rw[← Nat.succ_pred ieq0, List.length, Nat.succ_lt_succ_iff] at i_bound; exact i_bound
       rcases ih i.pred i_pred_bound with ⟨ih1, ih2, ih3⟩
-      have tmp' := List.get_ith_eq_tail_get_pred (readInput (hd :: tl)) i ieq0 (by simp[readInput]; exact i_bound) (by simp[readInput])
+      have tmp' := List.get_ith_eq_tail_get_pred (readInput_Int (hd :: tl)) i ieq0 (by simp[readInput_Int]; exact i_bound) (by simp[readInput_Int])
       rw [tmp] at h
     · rw [← ih1 h]
       tauto
@@ -91,37 +96,34 @@ theorem readInput_correct : ∀ (input : List String) (i : ℕ), i < (readInput 
     · rw [← ih3 h]
       tauto
 
-theorem readInput_correct' : ∀ (input : List String) (i : ℕ), i < (readInput input).length →
-  ((readInput input).get! i = some 1 →  (input.get! i).toInt! > 0) ∧
-  ((readInput input).get! i = some 0 →  (input.get! i).toInt! < 0) ∧
-  ((readInput input).get! i = none →  (input.get! i).toInt! = 0) := by
+theorem readInput_Int_correct' : ∀ (input : List Int) (i : ℕ), i < (readInput_Int input).length →
+  ((readInput_Int input).get! i = some 1 →  (input.get! i) > 0) ∧
+  ((readInput_Int input).get! i = some 0 →  (input.get! i) < 0) ∧
+  ((readInput_Int input).get! i = none →  (input.get! i) = 0) := by
   intros input i i_bound
-  simp [readInput] at i_bound
+  simp [readInput_Int] at i_bound
   induction input generalizing i with
   | nil => simp_all
   | cons hd tl ih =>
-    apply And.intro
-    rotate_left
-    apply And.intro
-    rotate_right
+    refine ⟨?_, ?_, ?_⟩
     all_goals
       intros h
       by_cases ieq0 : i = 0
 
-    · simp_all[readInput]
+    · simp_all[readInput_Int]
     swap
-    · simp_all[readInput]
-      by_cases hd.toInt! = 0 <;> simp_all
+    · simp_all[readInput_Int]
+      by_cases hd = 0 <;> simp_all
       have _ :=  lt_or_eq_of_le h
       simp_all
     pick_goal 3
-    · simp_all[readInput]
+    · simp_all[readInput_Int]
     all_goals
-      have tmp : (hd :: tl)[i]!.toInt! = (tl)[i-1]!.toInt! := by
-        have _ := (hd::tl).get_ith_eq_tail_get_pred i ieq0 i_bound (by simp[readInput])
+      have tmp : (hd :: tl)[i]! = (tl)[i-1]! := by
+        have _ := (hd::tl).get_ith_eq_tail_get_pred i ieq0 i_bound (by simp[readInput_Int])
         simp_all
       have i_pred_bound: i - 1 < tl.length := by rw[← Nat.succ_pred ieq0, List.length, Nat.succ_lt_succ_iff] at i_bound; exact i_bound
-      have tmp' := List.get_ith_eq_tail_get_pred (readInput (hd :: tl)) i ieq0 (by simp[readInput]; exact i_bound) (by simp[readInput])
+      have tmp' := List.get_ith_eq_tail_get_pred (readInput_Int (hd :: tl)) i ieq0 (by simp[readInput_Int]; exact i_bound) (by simp[readInput_Int])
       rcases ih i.pred i_pred_bound with ⟨ih1, ih2, ih3⟩
       simp only [tmp'] at h
     · have tmp'' := ih1 h
@@ -157,7 +159,7 @@ def ver2Edge (i j : Nat) (H : i < j): Nat :=
 
 -- revise the order of simplegraph
 
-def graphMk (adjList : List (Option (Fin 2))) : SimpleGraph (Fin ((adjList.length)*(adjList.length)/2)) :=
+def SimpleGraph.mk_list (adjList : List (Option (Fin 2))) : SimpleGraph (Fin ((adjList.length)*(adjList.length)/2)) :=
 
   SimpleGraph.mk (λ v w ↦ if H : v < w then adjList.get! (ver2Edge v w H) = some 1
   else if H : w < v then adjList.get! (ver2Edge w v H) = some 1
@@ -178,6 +180,10 @@ def graphMk (adjList : List (Option (Fin 2))) : SimpleGraph (Fin ((adjList.lengt
     intro x H
     simp_all
   )
+instance mk_List_DecidableRelAdj (adjList : List (Option (Fin 2))): DecidableRel (SimpleGraph.mk_list (adjList)).Adj := by
+  simp[SimpleGraph.mk_list]
+  infer_instance
+
 -- #eval (graphMk (readInput ("1 -2 3".splitOn " "))).edgeFinset
 
 -- theorem graphMk_correct (adjList : List (Option (Fin 2))) :
@@ -185,43 +191,9 @@ def graphMk (adjList : List (Option (Fin 2))) : SimpleGraph (Fin ((adjList.lengt
 --   ∀ (v w : Fin adjList.length), G.Adj v w ↔ v ≠ w ∧ if v < w then (adjList.get! (ver2Edge v w)) = some 1
 --   else  (adjList.get! (ver2Edge w v)) = some 1 := by simp_all [graphMk]
 
--- -- Function to compute the index in the adjacency list for the edge between vertices i and j
--- def ver2Edge (i j : Nat) (H: i<j): Nat :=
---   i + j * (j - 1) / 2 + 1
 
-
-
--- #eval ver2Edge 2 3
--- #eval ver2Edge 1 3
-
--- def graphMk (adjList : List (Option (Fin 2))) : SimpleGraph (Fin adjList.length) :=
-
---   SimpleGraph.mk (λ v w ↦ match Nat.lt_trichotomy v w with
---     | Or.inl H => sorry
---     | Or.inr (Or.inl H) =>
---     | Or.inr (Or.inr H) =>
---   end)
-
-
--- -- #eval (graphMk (readInput ("1 -2 3".splitOn " "))).edgeFinset
-
--- theorem graphMk_correct (adjList : List (Option (Fin 2))) :
---   let G := graphMk adjList
---   ∀ (v w : Fin adjList.length), G.Adj v w ↔ (v < w ∧ adjList.get! (ver2Edge v w) = some 1)
---   ∨ (w < v ∧ adjList.get! (ver2Edge w v) = some 1 ) := by simp_all [graphMk]
-
-
-  --  (v < w ∧ adjList.get! (ver2Edge v w ) = some 1)
-  -- ∨ (w < v ∧ adjList.get! (ver2Edge w v) = some 1 ) )-- neq -> v w = 1 or w v = 1
-  -- (by
-  --   -- Prove the symmetric property (undirected graph)
-  --   intros v w Hvw
-  --   rcases Hvw with left | right
-  --   exact Or.inr left
-  --   exact Or.inl right
-  -- )
-  -- (by
-  --   -- Prove the irreflexive property (no self-loops)
-  --   intro x H
-  --   simp_all
-  -- )
+  -- SimpleGraph.mk (λ v w ↦ match Nat.lt_trichotomy v w with
+  --   | Or.inl H => sorry
+  --   | Or.inr (Or.inl H) =>
+  --   | Or.inr (Or.inr H) =>
+  -- end)
