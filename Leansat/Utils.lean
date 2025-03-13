@@ -155,10 +155,6 @@ def edge2Ver (k N : ℕ) : Option (ℕ × ℕ) :=
 def ver2Edge (i j : Nat) (H : i < j): Nat :=
   i + j * (j - 1) / 2 + 1
 
--- def ver2EdgeMat (N: Nat) : Matrix (Fin N) (Fin N) Nat := λ i j ↦
-
--- revise the order of simplegraph
-
 def SimpleGraph.mk_list (adjList : List (Option (Fin 2))) : SimpleGraph (Fin ((adjList.length)*(adjList.length)/2)) :=
 
   SimpleGraph.mk (λ v w ↦ if H : v < w then adjList.get! (ver2Edge v w H) = some 1
@@ -183,17 +179,3 @@ def SimpleGraph.mk_list (adjList : List (Option (Fin 2))) : SimpleGraph (Fin ((a
 instance mk_List_DecidableRelAdj (adjList : List (Option (Fin 2))): DecidableRel (SimpleGraph.mk_list (adjList)).Adj := by
   simp[SimpleGraph.mk_list]
   infer_instance
-
--- #eval (graphMk (readInput ("1 -2 3".splitOn " "))).edgeFinset
-
--- theorem graphMk_correct (adjList : List (Option (Fin 2))) :
---   let G := graphMk adjList
---   ∀ (v w : Fin adjList.length), G.Adj v w ↔ v ≠ w ∧ if v < w then (adjList.get! (ver2Edge v w)) = some 1
---   else  (adjList.get! (ver2Edge w v)) = some 1 := by simp_all [graphMk]
-
-
-  -- SimpleGraph.mk (λ v w ↦ match Nat.lt_trichotomy v w with
-  --   | Or.inl H => sorry
-  --   | Or.inr (Or.inl H) =>
-  --   | Or.inr (Or.inr H) =>
-  -- end)
