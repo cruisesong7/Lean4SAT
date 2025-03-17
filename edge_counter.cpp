@@ -61,15 +61,13 @@ int main(int argc, char* argv[]) {
         std::cout << "Error: Invalid result from edgesExceedBound" << std::endl;
     }
 
-    // Clean up - comment out potential problematic cleanup
-    lean_dec_ref(upperbound);
-    std::cout << "Debug: Decremented upperbound ref" << std::endl;
+    // Comment out all cleanup to see if we can avoid the segfault
+    // lean_dec_ref(upperbound);
+    // std::cout << "Debug: Decremented upperbound ref" << std::endl;
     
-    lean_dec_ref(output);
-    std::cout << "Debug: Decremented output ref" << std::endl;
+    // lean_dec_ref(output);
+    // std::cout << "Debug: Decremented output ref" << std::endl;
     
-    // We're not cleaning up w here - this might be causing issues
-    // Try uncommenting this if the segfault persists after other operations
     // lean_dec_ref(w);
     // std::cout << "Debug: Decremented w ref" << std::endl;
 
