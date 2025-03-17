@@ -134,14 +134,18 @@ bool CadicalLean::check_edge_count() {
     cmd << edge_counter_path << " " << n;  // First argument is the order n
     
     // Add all variable assignments in the required format
-    // For each potential edge, add 0 (unknown), 1 (present), or -1 (absent)
+    // For each potential edge variable, add:
+    // - The positive variable number if assigned true
+    // - The negative variable number if assigned false
+    // - 0 if the variable is unassigned
     for (int i = 0; i < num_edge_vars; i++) {
+        int var_num = i + 1;  // Convert to 1-based indexing
         if (assign[i] == l_True) {
-            cmd << " " << 1;  // Edge is present
+            cmd << " " << var_num;  // Positive variable number
         } else if (assign[i] == l_False) {
-            cmd << " " << -1;  // Edge is absent
+            cmd << " " << -var_num;  // Negative variable number
         } else {
-            cmd << " " << 0;  // Edge is unknown
+            cmd << " " << 0;  // Unassigned variable
         }
     }
     
