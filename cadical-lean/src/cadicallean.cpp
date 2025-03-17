@@ -170,7 +170,7 @@ bool CadicalLean::check_edge_count() {
         std::cout << "Current edge count: " << edge_count << " (max: " << max_edges << ")" << std::endl;
         
         // Return true if edge count exceeds limit and max_edges is valid
-        return (max_edges >= 0) && (edge_count > max_edges);
+        return (edge_count > max_edges);
     }
     
     return false;

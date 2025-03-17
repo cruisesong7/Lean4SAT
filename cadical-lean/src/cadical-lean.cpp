@@ -912,13 +912,17 @@ int App::main (int argc, char **argv) {
       res = 0;
   } else {
     solver->section ("solving");
-
-    CadicalLean se(solver, order, max_edges, edge_counter_path);
-
+    
     max_var = solver->active ();
-    //std::cout << "c Nof vars: " << max_var << std::endl;
-
-    res = solver->solve ();
+    
+    if (max_edges >= 0) {
+        // Only use CadicalLean when max_edges is specified
+        CadicalLean se(solver, order, max_edges, edge_counter_path);
+        res = solver->solve ();
+    } else {
+        // Regular solving without CadicalLean
+        res = solver->solve ();
+    }
   }
 
   if (solver->proof_specified) {
