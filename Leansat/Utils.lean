@@ -38,9 +38,9 @@ def readInput_Int(input : List Int) : List (Option (Fin 2)) :=
     if x  = 0 then none  -- Zero maps to None (unknown)
     else some (if x > 0 then 1 else 0)  -- Positive: Some 1, Negative: Some 0
   )
-
-def readInput_Str(input : List String) : List (Option (Fin 2)) :=
-  readInput_Int (input.map (λ str ↦ str.toInt!))
+@[export readInput_Str]
+def readInput_Str(input : String) : List (Option (Fin 2)) :=
+  readInput_Int ((input.splitOn " ").map (λ str ↦ str.toInt!))
 
 -- @[export readInput1]
 -- def readInput1 (input :  String) : List (Option (Fin 2)) :=

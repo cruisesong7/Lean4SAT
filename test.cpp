@@ -3,7 +3,7 @@
 #include <string>
 #include <lean/lean.h>
 
-extern "C" lean_object* readInput1(lean_object* w);
+extern "C" lean_object* readInput_Str(lean_object* w);
 extern "C" lean_object* countEdges(lean_object* w);
 
 extern "C" void lean_initialize_runtime_module();
@@ -39,7 +39,7 @@ int main(int argc, char* argv[]) {
     lean_io_mark_end_initialization();
 
     lean_object* input_str = lean_mk_string(input_string.c_str());
-    lean_object* w = readInput1(input_str);
+    lean_object* w = readInput_Str(input_str);
     lean_dec_ref(input_str);
 
     // lean_object* n = lean_unsigned_to_nat(4);  // Assuming 4 vertices, adjust if needed
