@@ -152,7 +152,7 @@ int CadicalLean::cb_add_reason_clause_lit (int plit) {
 bool CadicalLean::check_edge_count() {
     // Prepare the command to run edge_counter with current assignment
     std::stringstream cmd;
-    cmd << edge_counter_path << " " << n;  // First argument is the order n
+    cmd << edge_counter_path << " " << edge_bound;  // First argument is the bound
     
     // Add all variable assignments in the required format
     // For each potential edge variable, add:
@@ -209,7 +209,7 @@ bool CadicalLean::check_edge_count() {
 bool CadicalLean::check_degree_count() {
     // Prepare the command to run degree_counter with current assignment
     std::stringstream cmd;
-    cmd << degree_counter_path << " " << n;  // First argument is the order n
+    cmd << degree_counter_path << " " << degree_bound;  // First argument is the bound
     
     // Add all variable assignments in the required format
     // For each potential edge variable, add:
