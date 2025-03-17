@@ -42,20 +42,26 @@ int main(int argc, char* argv[]) {
     lean_object* w = readInput_Str(input_str);
     lean_dec_ref(input_str);
 
-    // lean_object* n = lean_unsigned_to_nat(4);  // Assuming 4 vertices, adjust if needed
-    // lean_object* output = isEdgesGT(w, n);
-
-    lean_object* output = countEdges(w);
+    // Define an upperbound for edge count (you can adjust this value as needed)
+    lean_object* upperbound = lean_unsigned_to_nat(3);  // Example: 3 as upperbound
+    lean_object* output = edgesExceedBound(w, upperbound);
 
     if (lean_is_scalar(output)) {
-        uint32_t result = lean_uint32_of_nat(output);
-        std::cout << "Number of edges: " << result << std::endl;
+        // Parse as boolean (Fin 2) where 1 means true and 0 means false
+        uint8_t result = lean_unbox(output);
+        if (result == 1) {
+            std::cout << "Edge count exceeds the bound" << std::endl;
+        } else {
+            std::cout << "Edge count does not exceed the bound" << std::endl;
+        }
     } else {
-        std::cout << "Error: Invalid result from countEdges" << std::endl;
+        std::cout << "Error: Invalid result from edgesExceedBound" << std::endl;
     }
 
     // Clean up
-    // We're not cleaning up w, n, and output_tri here
+    lean_dec_ref(upperbound);
+    lean_dec_ref(output);
+    // We're not cleaning up w here
 
     return 0;
 }
