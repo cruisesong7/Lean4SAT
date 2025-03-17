@@ -507,7 +507,7 @@ int App::main (int argc, char **argv) {
         APPERR ("invalid decision limit");
       else
         decision_limit_specified = argv[i];
-    } else if (!strcmp (argv[i], "--order")) {
+    } else if (!strcmp(argv[i], "--order")) {
       if (++i == argc)
         APPERR ("argument to '--order' missing");
       else if (order != 0)
@@ -520,6 +520,17 @@ int App::main (int argc, char **argv) {
         order = stoi(argv[i]);
         std::cout << "c order = " << order << endl;
       }
+    } else if (!strcmp(argv[i], "--max-edges")) {
+      if (++i == argc)
+        APPERR("argument to '--max-edges' missing");
+      if (!parse_int_str(argv[i], max_edges))
+        APPERR("invalid argument in '--max-edges %s'", argv[i]);
+      if (max_edges < 0)
+        APPERR("invalid max edges limit");
+    } else if (!strcmp(argv[i], "--edge-counter")) {
+      if (++i == argc)
+        APPERR("argument to '--edge-counter' missing");
+      edge_counter_path = argv[i];
     } 
 #ifndef __WIN32
     else if (!strcmp (argv[i], "-t")) {
@@ -600,18 +611,7 @@ int App::main (int argc, char **argv) {
                 proof_path);
       else if (!File::writable (proof_path))
         APPERR ("DRAT proof file '%s' not writable", proof_path);
-    } else if (!strcmp(argv[i], "--max-edges")) {
-      if (++i == argc)
-        APPERR("argument to '--max-edges' missing");
-      if (!parse_int_str(argv[i], max_edges))
-        APPERR("invalid argument in '--max-edges %s'", argv[i]);
-      if (max_edges < 0)
-        APPERR("invalid max edges limit");
-    } else if (!strcmp(argv[i], "--edge-counter")) {
-      if (++i == argc)
-        APPERR("argument to '--edge-counter' missing");
-      edge_counter_path = argv[i];
-    } else
+    } 
       dimacs_specified = true, dimacs_path = argv[i];
   }
 

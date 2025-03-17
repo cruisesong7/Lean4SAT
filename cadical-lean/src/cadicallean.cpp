@@ -130,11 +130,19 @@ bool CadicalLean::check_edge_count() {
     std::stringstream cmd;
     cmd << edge_counter_path;
     
-    // Add all positive edge variables to the command
+    // Count positive edge variables
+    int positive_count = 0;
     for (int i = 0; i < num_edge_vars; i++) {
         if (assign[i] == l_True) {
             cmd << " " << (i + 1);
+            positive_count++;
         }
+    }
+    
+    // If no positive assignments, no need to check edge count
+    if (positive_count == 0) {
+        std::cout << "No positive edge assignments, edge count is 0" << std::endl;
+        return false;  // No edges, so can't exceed limit
     }
     
     // Execute the command and capture output
@@ -161,8 +169,8 @@ bool CadicalLean::check_edge_count() {
         
         std::cout << "Current edge count: " << edge_count << " (max: " << max_edges << ")" << std::endl;
         
-        // Return true if edge count exceeds limit
-        return edge_count > max_edges;
+        // Return true if edge count exceeds limit and max_edges is valid
+        return (max_edges >= 0) && (edge_count > max_edges);
     }
     
     return false;
