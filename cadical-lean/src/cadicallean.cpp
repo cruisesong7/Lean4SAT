@@ -4,7 +4,7 @@
 #include <cstdlib>
 #include <sstream>
 
-CadicalLean::CadicalLean(CaDiCaL::Solver * s, int order, int max_edges, const std::string& edge_counter_path) : solver(s), n(order), max_edges(max_edges), edge_counter_path(edge_counter_path), sol_count(0) {
+CadicalLean::CadicalLean(CaDiCaL::Solver * s, int order, int edge_bound, const std::string& edge_counter_path) : solver(s), n(order), edge_bound(edge_bound), edge_counter_path(edge_counter_path), sol_count(0) {
     num_edge_vars = n * (n - 1) / 2;
     assign = new int[num_edge_vars];
     fixed = new bool[num_edge_vars];
@@ -41,8 +41,8 @@ void CadicalLean::notify_assignment(int lit, bool is_fixed) {
     }
     std::cout << std::endl;
     
-    // Only check edge count if max_edges is non-negative
-    if (max_edges >= 0) {
+    // Only check edge count if edge_bound is non-negative
+    if (edge_bound >= 0) {
         // Check edge count after each assignment
         if (check_edge_count()) {
             // If edge counter returns 1, generate and add blocking clause
