@@ -1,6 +1,7 @@
 #include <iostream>
 #include <sstream>
 #include <string>
+#include <vector>
 #include <lean/lean.h>
 
 extern "C" lean_object* readInput_Str(lean_object* w);
@@ -26,11 +27,36 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    // Combine the remaining arguments into a single string
-    std::stringstream ss;
+    // Parse and validate the input numbers
+    std::vector<int> numbers;
     for (int i = 2; i < argc; ++i) {
-        if (i > 2) ss << " ";
-        ss << argv[i];
+        try {
+            int num = std::stoi(argv[i]);
+            numbers.push_back(num);
+        } catch (const std::exception& e) {
+            std::cerr << "Error: Invalid number format at position " << (i-1) << std::endl;
+            return 1;
+        }
+    }
+
+    // Validate the pattern: each number at position i must be 0, i, or -i
+    for (size_t i = 0; i < numbers.size(); ++i) {
+        int position = i + 1;  // 1-indexed position
+        int num = numbers[i];
+        
+        if (num != 0 && num != position && num != -position) {
+            std::cerr << "Error: Number at position " << position 
+                      << " must be 0, " << position << ", or -" << position 
+                      << ", but got " << num << std::endl;
+            return 1;
+        }
+    }
+
+    // Combine the validated numbers into a single string
+    std::stringstream ss;
+    for (size_t i = 0; i < numbers.size(); ++i) {
+        if (i > 0) ss << " ";
+        ss << numbers[i];
     }
     std::string input_string = ss.str();
 
