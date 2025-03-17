@@ -393,7 +393,7 @@ int App::main (int argc, char **argv) {
   bool witness = true, less = false;
   const char *dimacs_name, *err;
 
-  int max_edges = -1;  // Default: no limit
+  int edge_bound = -1;  // Default: no limit
   const char* edge_counter_path = "./edge_counter";
 
   // First, process all options
@@ -415,13 +415,13 @@ int App::main (int argc, char **argv) {
         order = stoi(argv[i]);
         std::cout << "c order = " << order << endl;
       }
-    } else if (!strcmp(argv[i], "--max-edges")) {
+    } else if (!strcmp(argv[i], "--edge-bound")) {
       if (++i == argc)
-        APPERR("argument to '--max-edges' missing");
-      if (!parse_int_str(argv[i], max_edges))
-        APPERR("invalid argument in '--max-edges %s'", argv[i]);
-      if (max_edges < 0)
-        APPERR("invalid max edges limit");
+        APPERR("argument to '--edge-bound' missing");
+      if (!parse_int_str(argv[i], edge_bound))
+        APPERR("invalid argument in '--edge-bound %s'", argv[i]);
+      if (edge_bound < 0)
+        APPERR("invalid edge bound");
     } else if (!strcmp(argv[i], "--edge-counter")) {
       if (++i == argc)
         APPERR("argument to '--edge-counter' missing");
@@ -541,10 +541,10 @@ int App::main (int argc, char **argv) {
     } else if (!strcmp(argv[i], "--max-edges")) {
       if (++i == argc)
         APPERR("argument to '--max-edges' missing");
-      if (!parse_int_str(argv[i], max_edges))
+      if (!parse_int_str(argv[i], edge_bound))
         APPERR("invalid argument in '--max-edges %s'", argv[i]);
-      if (max_edges < 0)
-        APPERR("invalid max edges limit");
+      if (edge_bound < 0)
+        APPERR("invalid edge bound");
     } else if (!strcmp(argv[i], "--edge-counter")) {
       if (++i == argc)
         APPERR("argument to '--edge-counter' missing");
@@ -916,7 +916,7 @@ int App::main (int argc, char **argv) {
     max_var = solver->active ();
     
     // Always use CadicalLean, but edge counting only happens when max_edges >= 0
-    CadicalLean se(solver, order, max_edges, edge_counter_path);
+    CadicalLean se(solver, order, edge_bound, edge_counter_path);
     res = solver->solve ();
   }
 
