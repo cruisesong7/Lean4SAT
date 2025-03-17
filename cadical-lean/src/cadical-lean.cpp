@@ -915,14 +915,9 @@ int App::main (int argc, char **argv) {
     
     max_var = solver->active ();
     
-    if (max_edges >= 0) {
-        // Only use CadicalLean when max_edges is specified
-        CadicalLean se(solver, order, max_edges, edge_counter_path);
-        res = solver->solve ();
-    } else {
-        // Regular solving without CadicalLean
-        res = solver->solve ();
-    }
+    // Always use CadicalLean, but edge counting only happens when max_edges >= 0
+    CadicalLean se(solver, order, max_edges, edge_counter_path);
+    res = solver->solve ();
   }
 
   if (solver->proof_specified) {

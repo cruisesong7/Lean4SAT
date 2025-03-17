@@ -41,19 +41,22 @@ void CadicalLean::notify_assignment(int lit, bool is_fixed) {
     }
     std::cout << std::endl;
     
-    // Check edge count after each assignment
-    if (check_edge_count()) {
-        // If edge count exceeds limit, generate and add blocking clause
-        std::vector<int> clause = generate_blocking_clause();
-        if (!clause.empty()) {
-            std::cout << "Edge count exceeded limit. Adding blocking clause: ";
-            for (const auto& lit : clause) {
-                std::cout << lit << " ";
+    // Only check edge count if max_edges is non-negative
+    if (max_edges >= 0) {
+        // Check edge count after each assignment
+        if (check_edge_count()) {
+            // If edge count exceeds limit, generate and add blocking clause
+            std::vector<int> clause = generate_blocking_clause();
+            if (!clause.empty()) {
+                std::cout << "Edge count exceeded limit. Adding blocking clause: ";
+                for (const auto& lit : clause) {
+                    std::cout << lit << " ";
+                }
+                std::cout << std::endl;
+                
+                new_clauses.push_back(clause);
+                solver->add_trusted_clause(clause);
             }
-            std::cout << std::endl;
-            
-            new_clauses.push_back(clause);
-            solver->add_trusted_clause(clause);
         }
     }
 }
