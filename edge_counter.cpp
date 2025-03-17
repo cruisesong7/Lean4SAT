@@ -4,7 +4,7 @@
 #include <lean/lean.h>
 
 extern "C" lean_object* readInput_Str(lean_object* w);
-extern "C" lean_object* countEdges(lean_object* w);
+extern "C" lean_object* edgesExceedBound(lean_object* w, lean_object* upperbound);
 
 extern "C" void lean_initialize_runtime_module();
 extern "C" void lean_initialize();
