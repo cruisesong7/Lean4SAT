@@ -19,9 +19,13 @@ int main(int argc, char* argv[]) {
     }
 
     // Parse the bound from the first argument
-    unsigned int bound;
+    int bound;
     try {
         bound = std::stoi(argv[1]);
+        if (bound <= 0) {
+            std::cerr << "Error: Bound must be a positive integer." << std::endl;
+            return 1;
+        }
     } catch (const std::exception& e) {
         std::cerr << "Error: Invalid bound value. Must be a positive integer." << std::endl;
         return 1;
