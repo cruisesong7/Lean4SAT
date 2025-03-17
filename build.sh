@@ -33,7 +33,7 @@ export LD_LIBRARY_PATH=$LIBRARY_PATH
 export CPLUS_INCLUDE_PATH=$HOME/.elan/toolchains/leanprover--lean4---${LEAN_VERSION}/include/
 
 # build C++ file calling Lean functions
-g++ test.cpp -o test -lleanshared -lLeansat
+g++ edge_counter.cpp -o edge_counter -lleanshared -lLeansat
 
 # run 
 ./test
