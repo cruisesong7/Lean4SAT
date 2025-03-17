@@ -4,10 +4,16 @@
 #include <cstdlib>
 #include <sstream>
 
-CadicalLean::CadicalLean(CaDiCaL::Solver * s, int order, int edge_bound, const std::string& edge_counter_path) : solver(s), n(order), edge_bound(edge_bound), edge_counter_path(edge_counter_path), sol_count(0) {
-    num_edge_vars = n * (n - 1) / 2;
-    assign = new int[num_edge_vars];
-    fixed = new bool[num_edge_vars];
+CadicalLean::CadicalLean(CaDiCaL::Solver * s, int order, int edge_bound, const std::string& edge_counter_path) 
+    : solver(s), 
+      n(order), 
+      num_edge_vars(n * (n - 1) / 2),
+      assign(new int[n * (n - 1) / 2]),
+      fixed(new bool[n * (n - 1) / 2]),
+      edge_bound(edge_bound), 
+      edge_counter_path(edge_counter_path),
+      sol_count(0) {
+    
     solver->connect_external_propagator(this);
     for (int i = 0; i < num_edge_vars; i++) {
         assign[i] = l_Undef;

@@ -14,24 +14,23 @@ private:
     bool* fixed;
     std::vector<std::vector<int>> current_trail;
     std::vector<std::vector<int>> new_clauses;
-    int sol_count = 0;
     
-    // New parameters for edge counting
-    int max_edges;
+    // Renamed parameter for edge counting
+    int edge_bound;
     std::string edge_counter_path;
+    int sol_count = 0;
 
     static const int l_True = 1;
     static const int l_False = -1;
     static const int l_Undef = 0;
     
-    // New helper method to check edge count
+    // Helper methods for edge counting
     bool check_edge_count();
-    // Helper to generate blocking clause for current assignment
     std::vector<int> generate_blocking_clause();
 
 public:
-    // Updated constructor to include max_edges parameter
-    CadicalLean(CaDiCaL::Solver* s, int order, int max_edges, const std::string& edge_counter_path = "./edge_counter");
+    // Updated constructor with renamed parameter
+    CadicalLean(CaDiCaL::Solver* s, int order, int edge_bound, const std::string& edge_counter_path = "./edge_counter");
     ~CadicalLean();
 
     // ExternalPropagator interface methods
