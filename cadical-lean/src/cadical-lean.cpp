@@ -396,18 +396,36 @@ int App::main (int argc, char **argv) {
   int max_edges = -1;  // Default: no limit
   const char* edge_counter_path = "./edge_counter";
 
+  // First, process all options
   for (int i = 1; i < argc; i++) {
     if (!strcmp (argv[i], "-h") || !strcmp (argv[i], "--help") ||
         !strcmp (argv[i], "--build") || !strcmp (argv[i], "--version") ||
         !strcmp (argv[i], "--copyright")) {
       APPERR ("can only use '%s' as single first option", argv[i]);
-    } else if (!strcmp (argv[i], "-")) {
-      if (solver->proof_specified)
-        APPERR ("too many arguments");
-      else if (!dimacs_specified)
-        dimacs_specified = true;
-      else
-        solver->proof_specified = true;
+    } else if (!strcmp(argv[i], "--order")) {
+      if (++i == argc)
+        APPERR ("argument to '--order' missing");
+      else if (order != 0)
+        APPERR ("multiple argument '--order %d' and '--order %s'", order, argv[i]);
+      else if (!parse_int_str (argv[i], order))
+        APPERR ("invalid argument in '--order %s'", argv[i]);
+      else if (order < 0 || order > 40)
+        APPERR ("invalid order");
+      else {
+        order = stoi(argv[i]);
+        std::cout << "c order = " << order << endl;
+      }
+    } else if (!strcmp(argv[i], "--max-edges")) {
+      if (++i == argc)
+        APPERR("argument to '--max-edges' missing");
+      if (!parse_int_str(argv[i], max_edges))
+        APPERR("invalid argument in '--max-edges %s'", argv[i]);
+      if (max_edges < 0)
+        APPERR("invalid max edges limit");
+    } else if (!strcmp(argv[i], "--edge-counter")) {
+      if (++i == argc)
+        APPERR("argument to '--edge-counter' missing");
+      edge_counter_path = argv[i];
     } else if (!strcmp (argv[i], "-r")) {
       if (++i == argc)
         APPERR ("argument to '-r' missing");
@@ -531,9 +549,7 @@ int App::main (int argc, char **argv) {
       if (++i == argc)
         APPERR("argument to '--edge-counter' missing");
       edge_counter_path = argv[i];
-    } 
-#ifndef __WIN32
-    else if (!strcmp (argv[i], "-t")) {
+    } else if (!strcmp(argv[i], "-t")) {
       if (++i == argc)
         APPERR ("argument to '-t' missing");
       else if (time_limit_specified)
@@ -546,7 +562,6 @@ int App::main (int argc, char **argv) {
       else
         time_limit_specified = argv[i];
     }
-#endif
 #ifndef QUIET
     else if (!strcmp (argv[i], "-q"))
       set ("--quiet");
@@ -611,8 +626,10 @@ int App::main (int argc, char **argv) {
                 proof_path);
       else if (!File::writable (proof_path))
         APPERR ("DRAT proof file '%s' not writable", proof_path);
-    } 
-      dimacs_specified = true, dimacs_path = argv[i];
+    } else {
+      dimacs_specified = true;
+      dimacs_path = argv[i];
+    }
   }
 
   /*----------------------------------------------------------------------*/
