@@ -538,11 +538,11 @@ int App::main (int argc, char **argv) {
         order = stoi(argv[i]);
         std::cout << "c order = " << order << endl;
       }
-    } else if (!strcmp(argv[i], "--max-edges")) {
+    } else if (!strcmp(argv[i], "--strict-edge-bound")) {
       if (++i == argc)
-        APPERR("argument to '--max-edges' missing");
+        APPERR("argument to '--strict-edge-bound' missing");
       if (!parse_int_str(argv[i], edge_bound))
-        APPERR("invalid argument in '--max-edges %s'", argv[i]);
+        APPERR("invalid argument in '--strict-edge-bound %s'", argv[i]);
       if (edge_bound < 0)
         APPERR("invalid edge bound");
     } else if (!strcmp(argv[i], "--edge-counter")) {
