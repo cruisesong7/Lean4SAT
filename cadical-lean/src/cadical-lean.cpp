@@ -395,6 +395,8 @@ int App::main (int argc, char **argv) {
 
   int edge_bound = -1;  // Default: no limit
   const char* edge_counter_path = "./edge_counter";
+  int degree_bound = -1;  // Default: no limit
+  const char* degree_counter_path = "./degree_counter";
 
   // First, process all options
   for (int i = 1; i < argc; i++) {
@@ -426,6 +428,17 @@ int App::main (int argc, char **argv) {
       if (++i == argc)
         APPERR("argument to '--edge-counter' missing");
       edge_counter_path = argv[i];
+    } else if (!strcmp(argv[i], "--strict-degree-bound")) {
+      if (++i == argc)
+        APPERR("argument to '--strict-degree-bound' missing");
+      if (!parse_int_str(argv[i], degree_bound))
+        APPERR("invalid argument in '--strict-degree-bound %s'", argv[i]);
+      if (degree_bound < 0)
+        APPERR("invalid degree bound");
+    } else if (!strcmp(argv[i], "--degree-counter")) {
+      if (++i == argc)
+        APPERR("argument to '--degree-counter' missing");
+      degree_counter_path = argv[i];
     } else if (!strcmp (argv[i], "-r")) {
       if (++i == argc)
         APPERR ("argument to '-r' missing");
@@ -538,17 +551,6 @@ int App::main (int argc, char **argv) {
         order = stoi(argv[i]);
         std::cout << "c order = " << order << endl;
       }
-    } else if (!strcmp(argv[i], "--strict-edge-bound")) {
-      if (++i == argc)
-        APPERR("argument to '--strict-edge-bound' missing");
-      if (!parse_int_str(argv[i], edge_bound))
-        APPERR("invalid argument in '--strict-edge-bound %s'", argv[i]);
-      if (edge_bound < 0)
-        APPERR("invalid edge bound");
-    } else if (!strcmp(argv[i], "--edge-counter")) {
-      if (++i == argc)
-        APPERR("argument to '--edge-counter' missing");
-      edge_counter_path = argv[i];
     } else if (!strcmp(argv[i], "-t")) {
       if (++i == argc)
         APPERR ("argument to '-t' missing");
@@ -915,8 +917,12 @@ int App::main (int argc, char **argv) {
     
     max_var = solver->active ();
     
-    // Always use CadicalLean, but edge counting only happens when max_edges >= 0
-    CadicalLean se(solver, order, edge_bound, edge_counter_path);
+    // Create CadicalLean instance if order is specified
+    CadicalLean* cadical_lean = nullptr;
+    if (order > 0) {
+      cadical_lean = new CadicalLean(solver, order, edge_bound, edge_counter_path, 
+                                     degree_bound, degree_counter_path);
+    }
     res = solver->solve ();
   }
 

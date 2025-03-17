@@ -15,22 +15,26 @@ private:
     std::vector<std::vector<int>> current_trail;
     std::vector<std::vector<int>> new_clauses;
     
-    // Renamed parameter for edge counting
+    // Parameters for edge and degree counting
     int edge_bound;
     std::string edge_counter_path;
+    int degree_bound;
+    std::string degree_counter_path;
     int sol_count = 0;
 
     static const int l_True = 1;
     static const int l_False = -1;
     static const int l_Undef = 0;
     
-    // Helper methods for edge counting
+    // Helper methods for constraint checking
     bool check_edge_count();
+    bool check_degree_count();
     std::vector<int> generate_blocking_clause();
 
 public:
-    // Updated constructor with renamed parameter
-    CadicalLean(CaDiCaL::Solver* s, int order, int edge_bound, const std::string& edge_counter_path = "./edge_counter");
+    // Updated constructor with degree parameters
+    CadicalLean(CaDiCaL::Solver* s, int order, int edge_bound, const std::string& edge_counter_path = "./edge_counter",
+                int degree_bound = -1, const std::string& degree_counter_path = "./degree_counter");
     ~CadicalLean();
 
     // ExternalPropagator interface methods

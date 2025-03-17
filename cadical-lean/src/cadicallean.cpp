@@ -4,7 +4,8 @@
 #include <cstdlib>
 #include <sstream>
 
-CadicalLean::CadicalLean(CaDiCaL::Solver * s, int order, int edge_bound, const std::string& edge_counter_path) 
+CadicalLean::CadicalLean(CaDiCaL::Solver * s, int order, int edge_bound, const std::string& edge_counter_path,
+                         int degree_bound, const std::string& degree_counter_path) 
     : solver(s), 
       n(order), 
       num_edge_vars(n * (n - 1) / 2),
@@ -12,6 +13,8 @@ CadicalLean::CadicalLean(CaDiCaL::Solver * s, int order, int edge_bound, const s
       fixed(new bool[n * (n - 1) / 2]),
       edge_bound(edge_bound), 
       edge_counter_path(edge_counter_path),
+      degree_bound(degree_bound),
+      degree_counter_path(degree_counter_path),
       sol_count(0) {
     
     solver->connect_external_propagator(this);
@@ -47,22 +50,34 @@ void CadicalLean::notify_assignment(int lit, bool is_fixed) {
     }
     std::cout << std::endl;
     
-    // Only check edge count if edge_bound is non-negative
+    bool constraint_violated = false;
+    
+    // Check edge count if edge_bound is non-negative
     if (edge_bound >= 0) {
-        // Check edge count after each assignment
         if (check_edge_count()) {
-            // If edge counter returns 1, generate and add blocking clause
-            std::vector<int> clause = generate_blocking_clause();
-            if (!clause.empty()) {
-                std::cout << "Edge bound exceeded. Adding blocking clause: ";
-                for (const auto& lit : clause) {
-                    std::cout << lit << " ";
-                }
-                std::cout << std::endl;
-                
-                new_clauses.push_back(clause);
-                solver->add_trusted_clause(clause);
+            constraint_violated = true;
+        }
+    }
+    
+    // Check degree count if degree_bound is non-negative
+    if (degree_bound >= 0) {
+        if (check_degree_count()) {
+            constraint_violated = true;
+        }
+    }
+    
+    // If either constraint is violated, generate and add blocking clause
+    if (constraint_violated) {
+        std::vector<int> clause = generate_blocking_clause();
+        if (!clause.empty()) {
+            std::cout << "Constraint bound exceeded. Adding blocking clause: ";
+            for (const auto& lit : clause) {
+                std::cout << lit << " ";
             }
+            std::cout << std::endl;
+            
+            new_clauses.push_back(clause);
+            solver->add_trusted_clause(clause);
         }
     }
 }
@@ -184,6 +199,63 @@ bool CadicalLean::check_edge_count() {
         std::cout << "Edge counter result: " << exceeded << std::endl;
     } catch (const std::exception& e) {
         std::cerr << "Error parsing edge counter output: " << result << std::endl;
+        return false;
+    }
+    
+    // Return true if bound is exceeded (result is 1)
+    return (exceeded == 1);
+}
+
+bool CadicalLean::check_degree_count() {
+    // Prepare the command to run degree_counter with current assignment
+    std::stringstream cmd;
+    cmd << degree_counter_path << " " << n;  // First argument is the order n
+    
+    // Add all variable assignments in the required format
+    // For each potential edge variable, add:
+    // - The positive variable number if assigned true
+    // - The negative variable number if assigned false
+    // - 0 if the variable is unassigned
+    for (int i = 0; i < num_edge_vars; i++) {
+        int var_num = i + 1;  // Convert to 1-based indexing
+        if (assign[i] == l_True) {
+            cmd << " " << var_num;  // Positive variable number
+        } else if (assign[i] == l_False) {
+            cmd << " " << -var_num;  // Negative variable number
+        } else {
+            cmd << " " << 0;  // Unassigned variable
+        }
+    }
+    
+    std::cout << "Running degree counter: " << cmd.str() << std::endl;
+    
+    // Execute the command and capture output
+    FILE* pipe = popen(cmd.str().c_str(), "r");
+    if (!pipe) {
+        std::cerr << "Error executing degree counter" << std::endl;
+        return false;
+    }
+    
+    // Read the binary result (0 or 1)
+    char buffer[128];
+    std::string result = "";
+    while (!feof(pipe)) {
+        if (fgets(buffer, 128, pipe) != NULL)
+            result += buffer;
+    }
+    pclose(pipe);
+    
+    // Trim whitespace
+    result.erase(0, result.find_first_not_of(" \n\r\t"));
+    result.erase(result.find_last_not_of(" \n\r\t") + 1);
+    
+    // Parse the output - should be 0 or 1
+    int exceeded = 0;
+    try {
+        exceeded = std::stoi(result);
+        std::cout << "Degree counter result: " << exceeded << std::endl;
+    } catch (const std::exception& e) {
+        std::cerr << "Error parsing degree counter output: " << result << std::endl;
         return false;
     }
     
