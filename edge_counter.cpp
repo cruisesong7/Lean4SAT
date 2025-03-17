@@ -39,12 +39,19 @@ int main(int argc, char* argv[]) {
     lean_io_mark_end_initialization();
 
     lean_object* input_str = lean_mk_string(input_string.c_str());
+    std::cout << "Debug: Created input string" << std::endl;
+    
     lean_object* w = readInput_Str(input_str);
+    std::cout << "Debug: Called readInput_Str" << std::endl;
     lean_dec_ref(input_str);
+    std::cout << "Debug: Decremented input_str ref" << std::endl;
 
     // Define an upperbound for edge count (you can adjust this value as needed)
     lean_object* upperbound = lean_unsigned_to_nat(3);  // Example: 3 as upperbound
+    std::cout << "Debug: Created upperbound" << std::endl;
+    
     lean_object* output = edgesExceedBound(w, upperbound);
+    std::cout << "Debug: Called edgesExceedBound" << std::endl;
 
     if (lean_is_scalar(output)) {
         // Output just the result as a single number (1 for exceed, 0 for not exceed)
@@ -54,10 +61,17 @@ int main(int argc, char* argv[]) {
         std::cout << "Error: Invalid result from edgesExceedBound" << std::endl;
     }
 
-    // Clean up
+    // Clean up - comment out potential problematic cleanup
     lean_dec_ref(upperbound);
+    std::cout << "Debug: Decremented upperbound ref" << std::endl;
+    
     lean_dec_ref(output);
-    // We're not cleaning up w here
+    std::cout << "Debug: Decremented output ref" << std::endl;
+    
+    // We're not cleaning up w here - this might be causing issues
+    // Try uncommenting this if the segfault persists after other operations
+    // lean_dec_ref(w);
+    // std::cout << "Debug: Decremented w ref" << std::endl;
 
     return 0;
 }
