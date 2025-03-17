@@ -45,10 +45,10 @@ void CadicalLean::notify_assignment(int lit, bool is_fixed) {
     if (max_edges >= 0) {
         // Check edge count after each assignment
         if (check_edge_count()) {
-            // If edge count exceeds limit, generate and add blocking clause
+            // If edge counter returns 1, generate and add blocking clause
             std::vector<int> clause = generate_blocking_clause();
             if (!clause.empty()) {
-                std::cout << "Edge count exceeded limit. Adding blocking clause: ";
+                std::cout << "Edge bound exceeded. Adding blocking clause: ";
                 for (const auto& lit : clause) {
                     std::cout << lit << " ";
                 }
@@ -131,52 +131,54 @@ int CadicalLean::cb_add_reason_clause_lit (int plit) {
 bool CadicalLean::check_edge_count() {
     // Prepare the command to run edge_counter with current assignment
     std::stringstream cmd;
-    cmd << edge_counter_path;
+    cmd << edge_counter_path << " " << n;  // First argument is the order n
     
-    // Count positive edge variables
-    int positive_count = 0;
+    // Add all variable assignments in the required format
+    // For each potential edge, add 0 (unknown), 1 (present), or -1 (absent)
     for (int i = 0; i < num_edge_vars; i++) {
         if (assign[i] == l_True) {
-            cmd << " " << (i + 1);
-            positive_count++;
+            cmd << " " << 1;  // Edge is present
+        } else if (assign[i] == l_False) {
+            cmd << " " << -1;  // Edge is absent
+        } else {
+            cmd << " " << 0;  // Edge is unknown
         }
     }
     
-    // If no positive assignments, no need to check edge count
-    if (positive_count == 0) {
-        std::cout << "No positive edge assignments, edge count is 0" << std::endl;
-        return false;  // No edges, so can't exceed limit
-    }
+    std::cout << "Running edge counter: " << cmd.str() << std::endl;
     
     // Execute the command and capture output
-    std::string result = "";
     FILE* pipe = popen(cmd.str().c_str(), "r");
     if (!pipe) {
         std::cerr << "Error executing edge counter" << std::endl;
         return false;
     }
     
+    // Read the binary result (0 or 1)
     char buffer[128];
+    std::string result = "";
     while (!feof(pipe)) {
         if (fgets(buffer, 128, pipe) != NULL)
             result += buffer;
     }
     pclose(pipe);
     
-    // Parse the output to get edge count
-    int edge_count = 0;
-    size_t pos = result.find("Number of edges: ");
-    if (pos != std::string::npos) {
-        std::stringstream ss(result.substr(pos + 16));
-        ss >> edge_count;
-        
-        std::cout << "Current edge count: " << edge_count << " (max: " << max_edges << ")" << std::endl;
-        
-        // Return true if edge count exceeds limit and max_edges is valid
-        return (edge_count > max_edges);
+    // Trim whitespace
+    result.erase(0, result.find_first_not_of(" \n\r\t"));
+    result.erase(result.find_last_not_of(" \n\r\t") + 1);
+    
+    // Parse the output - should be 0 or 1
+    int exceeded = 0;
+    try {
+        exceeded = std::stoi(result);
+        std::cout << "Edge counter result: " << exceeded << std::endl;
+    } catch (const std::exception& e) {
+        std::cerr << "Error parsing edge counter output: " << result << std::endl;
+        return false;
     }
     
-    return false;
+    // Return true if bound is exceeded (result is 1)
+    return (exceeded == 1);
 }
 
 std::vector<int> CadicalLean::generate_blocking_clause() {
