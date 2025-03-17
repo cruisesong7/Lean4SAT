@@ -22,12 +22,8 @@ int main(int argc, char* argv[]) {
     int bound;
     try {
         bound = std::stoi(argv[1]);
-        if (bound <= 0) {
-            std::cerr << "Error: Bound must be a positive integer." << std::endl;
-            return 1;
-        }
     } catch (const std::exception& e) {
-        std::cerr << "Error: Invalid bound value. Must be a positive integer." << std::endl;
+        std::cerr << "Error: Invalid bound value. Must be an integer." << std::endl;
         return 1;
     }
 
@@ -81,8 +77,9 @@ int main(int argc, char* argv[]) {
     lean_object* w = readInput_Str(input_str);
     lean_dec_ref(input_str);
 
-    // Use the bound from command line
-    lean_object* upperbound = lean_unsigned_to_nat(bound);
+    // Use the bound from command line - convert to unsigned for Lean
+    unsigned int abs_bound = (bound < 0) ? 0 : bound;
+    lean_object* upperbound = lean_unsigned_to_nat(abs_bound);
     
     lean_object* output = edgesExceedBound(w, upperbound);
 
