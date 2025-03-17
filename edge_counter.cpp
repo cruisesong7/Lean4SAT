@@ -47,13 +47,9 @@ int main(int argc, char* argv[]) {
     lean_object* output = edgesExceedBound(w, upperbound);
 
     if (lean_is_scalar(output)) {
-        // Parse as boolean (Fin 2) where 1 means true and 0 means false
+        // Output just the result as a single number (1 for exceed, 0 for not exceed)
         uint8_t result = lean_unbox(output);
-        if (result == 1) {
-            std::cout << "Edge count exceeds the bound" << std::endl;
-        } else {
-            std::cout << "Edge count does not exceed the bound" << std::endl;
-        }
+        std::cout << (int)result << std::endl;
     } else {
         std::cout << "Error: Invalid result from edgesExceedBound" << std::endl;
     }
