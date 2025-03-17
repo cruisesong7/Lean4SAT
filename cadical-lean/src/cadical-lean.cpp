@@ -393,6 +393,9 @@ int App::main (int argc, char **argv) {
   bool witness = true, less = false;
   const char *dimacs_name, *err;
 
+  int max_edges = -1;  // Default: no limit
+  const char* edge_counter_path = "./edge_counter";
+
   for (int i = 1; i < argc; i++) {
     if (!strcmp (argv[i], "-h") || !strcmp (argv[i], "--help") ||
         !strcmp (argv[i], "--build") || !strcmp (argv[i], "--version") ||
@@ -597,6 +600,17 @@ int App::main (int argc, char **argv) {
                 proof_path);
       else if (!File::writable (proof_path))
         APPERR ("DRAT proof file '%s' not writable", proof_path);
+    } else if (!strcmp(argv[i], "--max-edges")) {
+      if (++i == argc)
+        APPERR("argument to '--max-edges' missing");
+      if (!parse_int_str(argv[i], max_edges))
+        APPERR("invalid argument in '--max-edges %s'", argv[i]);
+      if (max_edges < 0)
+        APPERR("invalid max edges limit");
+    } else if (!strcmp(argv[i], "--edge-counter")) {
+      if (++i == argc)
+        APPERR("argument to '--edge-counter' missing");
+      edge_counter_path = argv[i];
     } else
       dimacs_specified = true, dimacs_path = argv[i];
   }
@@ -882,7 +896,7 @@ int App::main (int argc, char **argv) {
   } else {
     solver->section ("solving");
 
-    CadicalLean se(solver, order);
+    CadicalLean se(solver, order, max_edges, edge_counter_path);
 
     max_var = solver->active ();
     //std::cout << "c Nof vars: " << max_var << std::endl;
