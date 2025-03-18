@@ -10,7 +10,10 @@
 CXX=@CXX@
 CXXFLAGS=@CXXFLAGS@
 
-LIBS=@LIBS@
+# Add Lean libraries for direct edge counter integration
+LEANLIBS=-lleanshared -lLeansat
+
+LIBS=@LIBS@ $(LEANLIBS)
 
 ############################################################################
 #    It is usually not necessary to change anything below this line!       #
@@ -84,7 +87,7 @@ format:
 	clang-format -i ../test/*/*.[ch]
 
 clean:
-	rm -f *.o *.a cadical mobical makefile build.hpp
+	rm -f *.o *.a cadical mobical cadical-lean makefile build.hpp
 	rm -f *.gcda *.gcno *.gcov gmon.out
 
 test: all

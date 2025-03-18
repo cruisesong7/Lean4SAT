@@ -4,6 +4,15 @@
 #include <cstdlib>
 #include <sstream>
 #include <chrono>
+#include <lean/lean.h>
+
+// Add these external function declarations
+extern "C" lean_object* readInput_Str(lean_object* w);
+extern "C" lean_object* edgesExceedBound(lean_object* w, lean_object* upperbound);
+extern "C" void lean_initialize_runtime_module();
+extern "C" void lean_initialize();
+extern "C" void lean_io_mark_end_initialization();
+extern "C" lean_object* initialize_Leansat(uint8_t builtin, lean_object* w);
 
 CadicalLean::CadicalLean(CaDiCaL::Solver * s, int order, int edge_bound, const std::string& edge_counter_path,
                          int degree_bound, const std::string& degree_counter_path) 
@@ -31,6 +40,20 @@ CadicalLean::CadicalLean(CaDiCaL::Solver * s, int order, int edge_bound, const s
     for (int i = 0; i < num_edge_vars; i++) {
         solver->add_observed_var(i + 1);
     }
+    
+    // Initialize Lean runtime for direct edge counter usage
+    lean_initialize_runtime_module();
+    lean_initialize();
+    
+    lean_object* res = initialize_Leansat(1, lean_io_mk_world());
+    if (lean_io_result_is_ok(res)) {
+        lean_dec_ref(res);
+    } else {
+        lean_io_result_show_error(res);
+        lean_dec_ref(res);
+        std::cerr << "Failed to initialize Lean runtime" << std::endl;
+    }
+    lean_io_mark_end_initialization();
 }
 
 CadicalLean::~CadicalLean () {
@@ -199,64 +222,52 @@ bool CadicalLean::check_edge_count() {
     auto start_time = std::chrono::high_resolution_clock::now();
     edge_check_calls++;
     
-    // Prepare the command to run edge_counter with current assignment
-    std::stringstream cmd;
-    cmd << edge_counter_path << " " << edge_bound;  // First argument is the bound
-    
-    // Add all variable assignments in the required format
-    // For each potential edge variable, add:
-    // - The positive variable number if assigned true
-    // - The negative variable number if assigned false
-    // - 0 if the variable is unassigned
+    // Prepare the input string for the edge counter
+    std::stringstream ss;
     for (int i = 0; i < num_edge_vars; i++) {
+        if (i > 0) ss << " ";
         int var_num = i + 1;  // Convert to 1-based indexing
         if (assign[i] == l_True) {
-            cmd << " " << var_num;  // Positive variable number
+            ss << var_num;  // Positive variable number
         } else if (assign[i] == l_False) {
-            cmd << " " << -var_num;  // Negative variable number
+            ss << -var_num;  // Negative variable number
         } else {
-            cmd << " " << 0;  // Unassigned variable
+            ss << 0;  // Unassigned variable
         }
     }
+    std::string input_string = ss.str();
     
-    std::cout << "Running edge counter: " << cmd.str() << std::endl;
+    std::cout << "Checking edge count with input: " << input_string << std::endl;
     
-    // Execute the command and capture output
-    FILE* pipe = popen(cmd.str().c_str(), "r");
-    if (!pipe) {
-        std::cerr << "Error executing edge counter" << std::endl;
-        return false;
+    // Call the Lean functions directly
+    lean_object* input_str = lean_mk_string(input_string.c_str());
+    lean_object* w = readInput_Str(input_str);
+    lean_dec_ref(input_str);
+    
+    // Use the bound from member variable - convert to unsigned for Lean
+    unsigned int abs_bound = (edge_bound < 0) ? 0 : edge_bound;
+    lean_object* upperbound = lean_unsigned_to_nat(abs_bound);
+    
+    lean_object* output = edgesExceedBound(w, upperbound);
+    
+    bool exceeded = false;
+    if (lean_is_scalar(output)) {
+        uint8_t result = lean_unbox(output);
+        exceeded = (result == 1);
+        std::cout << "Edge counter result: " << (int)result << std::endl;
+    } else {
+        std::cerr << "Error: Invalid result from edgesExceedBound" << std::endl;
     }
     
-    // Read the binary result (0 or 1)
-    char buffer[128];
-    std::string result = "";
-    while (!feof(pipe)) {
-        if (fgets(buffer, 128, pipe) != NULL)
-            result += buffer;
-    }
-    pclose(pipe);
-    
-    // Trim whitespace
-    result.erase(0, result.find_first_not_of(" \n\r\t"));
-    result.erase(result.find_last_not_of(" \n\r\t") + 1);
-    
-    // Parse the output - should be 0 or 1
-    int exceeded = 0;
-    try {
-        exceeded = std::stoi(result);
-        std::cout << "Edge counter result: " << exceeded << std::endl;
-    } catch (const std::exception& e) {
-        std::cerr << "Error parsing edge counter output: " << result << std::endl;
-        return false;
-    }
+    // Clean up Lean objects
+    lean_dec_ref(upperbound);
+    // Note: w and output might need proper cleanup depending on Lean's memory management
     
     auto end_time = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> elapsed = end_time - start_time;
     edge_check_time += elapsed.count();
     
-    // Return true if bound is exceeded (result is 1)
-    return (exceeded == 1);
+    return exceeded;
 }
 
 bool CadicalLean::check_degree_count() {
