@@ -246,7 +246,8 @@ bool CadicalLean::check_edge_count() {
     
     // Check if IO result is ok
     if (!lean_io_result_is_ok(io_res)) {
-        std::cerr << "Error in readInput_Str" << std::endl;
+        std::cerr << "Error in readInput_Str: ";
+        lean_io_result_show_error(io_res);
         lean_dec_ref(input_str);
         return false;
     }
