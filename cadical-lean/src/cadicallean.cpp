@@ -223,47 +223,10 @@ int CadicalLean::cb_add_reason_clause_lit (int plit) {
 }
 
 bool CadicalLean::check_edge_count() {
-    edge_check_calls++;
     auto start_time = std::chrono::high_resolution_clock::now();
+    edge_check_calls++;
     
-    if (use_lean) {
-        // Use Lean for edge counting
-        lean_object* world = lean_io_mk_world();
-        
-        // Create a string representation of the current assignment
-        std::stringstream ss;
-        for (int i = 0; i < num_edge_vars; i++) {
-            if (assign[i] == l_True) {
-                ss << (i + 1) << " ";
-            } else if (assign[i] == l_False) {
-                ss << -(i + 1) << " ";
-            }
-        }
-        
-        // Convert the string to a Lean string object
-        lean_object* assignment_str = lean_mk_string(ss.str().c_str());
-        
-        // Create a Lean integer for the upper bound
-        lean_object* bound = lean_box_uint32(edge_bound);
-        
-        // Call the Lean function to check if edges exceed the bound
-        lean_object* result = edgesExceedBound(lean_io_mk_world(), bound);
-        
-        bool exceeds = false;
-        if (lean_io_result_is_ok(result)) {
-            exceeds = !lean_unbox(lean_io_result_get_value(result));
-            lean_dec_ref(result);
-        } else {
-            lean_io_result_show_error(result);
-            lean_dec_ref(result);
-            std::cerr << "Error in Lean edge counter" << std::endl;
-        }
-        
-        auto end_time = std::chrono::high_resolution_clock::now();
-        edge_check_time += std::chrono::duration<double>(end_time - start_time).count();
-        
-        return exceeds;
-    } else {
+    if (!use_lean) {
         // Direct C++ implementation for edge counting
         int edge_count = 0;
         for (int i = 0; i < num_edge_vars; i++) {
@@ -275,52 +238,62 @@ bool CadicalLean::check_edge_count() {
         auto end_time = std::chrono::high_resolution_clock::now();
         edge_check_time += std::chrono::duration<double>(end_time - start_time).count();
         
+        std::cout << "C++ edge count: " << edge_count << " (bound: " << edge_bound << ")" << std::endl;
         return edge_count > edge_bound;
     }
+    
+    // Use Lean for edge counting - keep the original implementation intact
+    // Prepare the input string for the edge counter
+    std::stringstream ss;
+    for (int i = 0; i < num_edge_vars; i++) {
+        if (i > 0) ss << " ";
+        int var_num = i + 1;  // Convert to 1-based indexing
+        if (assign[i] == l_True) {
+            ss << var_num;  // Positive variable number
+        } else if (assign[i] == l_False) {
+            ss << -var_num;  // Negative variable number
+        } else {
+            ss << 0;  // Unassigned variable
+        }
+    }
+    std::string input_string = ss.str();
+    
+    std::cout << "Checking edge count with input: " << input_string << std::endl;
+    
+    // Call the Lean functions directly - matching edge_counter.cpp implementation
+    lean_object* input_str = lean_mk_string(input_string.c_str());
+    lean_object* w = readInput_Str(input_str);
+    lean_dec_ref(input_str);
+    
+    // Use the bound from member variable - convert to unsigned for Lean
+    unsigned int abs_bound = (edge_bound < 0) ? 0 : edge_bound;
+    lean_object* upperbound = lean_unsigned_to_nat(abs_bound);
+    
+    lean_object* output = edgesExceedBound(w, upperbound);
+    
+    bool exceeded = false;
+    if (lean_is_scalar(output)) {
+        uint8_t result = lean_unbox(output);
+        exceeded = (result == 1);
+        std::cout << "Edge counter result: " << (int)result << std::endl;
+    } else {
+        std::cerr << "Error: Invalid result from edgesExceedBound" << std::endl;
+    }
+    
+    // No cleanup to avoid segfault (matching edge_counter.cpp)
+    
+    auto end_time = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> elapsed = end_time - start_time;
+    edge_check_time += elapsed.count();
+    
+    return exceeded;
 }
 
 bool CadicalLean::check_degree_count() {
-    degree_check_calls++;
     auto start_time = std::chrono::high_resolution_clock::now();
+    degree_check_calls++;
     
-    if (use_lean) {
-        // Use Lean for degree counting
-        lean_object* world = lean_io_mk_world();
-        
-        // Create a string representation of the current assignment
-        std::stringstream ss;
-        for (int i = 0; i < num_edge_vars; i++) {
-            if (assign[i] == l_True) {
-                ss << (i + 1) << " ";
-            } else if (assign[i] == l_False) {
-                ss << -(i + 1) << " ";
-            }
-        }
-        
-        // Convert the string to a Lean string object
-        lean_object* assignment_str = lean_mk_string(ss.str().c_str());
-        
-        // Create a Lean integer for the upper bound
-        lean_object* bound = lean_box_uint32(degree_bound);
-        
-        // Call the Lean function to check if degrees exceed the bound
-        lean_object* result = DegreeExceedBound(lean_io_mk_world(), bound);
-        
-        bool exceeds = false;
-        if (lean_io_result_is_ok(result)) {
-            exceeds = !lean_unbox(lean_io_result_get_value(result));
-            lean_dec_ref(result);
-        } else {
-            lean_io_result_show_error(result);
-            lean_dec_ref(result);
-            std::cerr << "Error in Lean degree counter" << std::endl;
-        }
-        
-        auto end_time = std::chrono::high_resolution_clock::now();
-        degree_check_time += std::chrono::duration<double>(end_time - start_time).count();
-        
-        return exceeds;
-    } else {
+    if (!use_lean) {
         // Direct C++ implementation for degree counting
         // Create an adjacency list representation
         std::vector<std::vector<int>> adj_list(n);
@@ -338,18 +311,70 @@ bool CadicalLean::check_degree_count() {
         }
         
         // Check if any vertex has degree exceeding the bound
+        int max_degree = 0;
         for (int i = 0; i < n; i++) {
+            max_degree = std::max(max_degree, static_cast<int>(adj_list[i].size()));
             if (static_cast<int>(adj_list[i].size()) > degree_bound) {
                 auto end_time = std::chrono::high_resolution_clock::now();
                 degree_check_time += std::chrono::duration<double>(end_time - start_time).count();
+                
+                std::cout << "C++ max degree: " << max_degree << " (bound: " << degree_bound << ")" << std::endl;
                 return true;
             }
         }
         
         auto end_time = std::chrono::high_resolution_clock::now();
         degree_check_time += std::chrono::duration<double>(end_time - start_time).count();
+        
+        std::cout << "C++ max degree: " << max_degree << " (bound: " << degree_bound << ")" << std::endl;
         return false;
     }
+    
+    // Use Lean for degree counting - keep the original implementation intact
+    // Prepare the input string for the degree counter
+    std::stringstream ss;
+    for (int i = 0; i < num_edge_vars; i++) {
+        if (i > 0) ss << " ";
+        int var_num = i + 1;  // Convert to 1-based indexing
+        if (assign[i] == l_True) {
+            ss << var_num;  // Positive variable number
+        } else if (assign[i] == l_False) {
+            ss << -var_num;  // Negative variable number
+        } else {
+            ss << 0;  // Unassigned variable
+        }
+    }
+    std::string input_string = ss.str();
+    
+    std::cout << "Checking degree count with input: " << input_string << std::endl;
+    
+    // Call the Lean functions directly - matching degree_counter.cpp implementation
+    lean_object* input_str = lean_mk_string(input_string.c_str());
+    lean_object* w = readInput_Str(input_str);
+    lean_dec_ref(input_str);
+    
+    // Use the bound from member variable - convert to unsigned for Lean
+    unsigned int abs_bound = (degree_bound < 0) ? 0 : degree_bound;
+    lean_object* upperbound = lean_unsigned_to_nat(abs_bound);
+    
+    lean_object* output = DegreeExceedBound(w, upperbound);
+    
+    bool exceeded = false;
+    if (lean_is_scalar(output)) {
+        uint8_t result = lean_unbox(output);
+        exceeded = (result == 1);
+        std::cout << "Degree counter result: " << (int)result << std::endl;
+    } else {
+        std::cerr << "Error: Invalid result from DegreeExceedBound" << std::endl;
+    }
+    
+    // No cleanup to avoid segfault (matching degree_counter.cpp)
+    
+    auto end_time = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> elapsed = end_time - start_time;
+    degree_check_time += elapsed.count();
+    
+    return exceeded;
 }
 
 std::vector<int> CadicalLean::generate_blocking_clause() {
