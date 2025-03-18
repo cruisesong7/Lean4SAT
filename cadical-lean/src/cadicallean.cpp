@@ -239,43 +239,27 @@ bool CadicalLean::check_edge_count() {
     
     std::cout << "Checking edge count with input: " << input_string << std::endl;
     
-    // Call the Lean functions directly
+    // Call the Lean functions directly - matching edge_counter.cpp implementation
     lean_object* input_str = lean_mk_string(input_string.c_str());
-    lean_object* w = lean_io_mk_world();
-    lean_object* io_res = readInput_Str(input_str);
-    
-    // Check if IO result is ok
-    if (!lean_io_result_is_ok(io_res)) {
-        std::cerr << "Error in readInput_Str: ";
-        lean_io_result_show_error(io_res);
-        lean_dec_ref(input_str);
-        return false;
-    }
-    
-    // Extract world from IO result
-    w = lean_io_result_get_value(io_res);
-    lean_dec_ref(io_res);
+    lean_object* w = readInput_Str(input_str);
     lean_dec_ref(input_str);
     
     // Use the bound from member variable - convert to unsigned for Lean
     unsigned int abs_bound = (edge_bound < 0) ? 0 : edge_bound;
     lean_object* upperbound = lean_unsigned_to_nat(abs_bound);
     
-    // Call edgesExceedBound
-    lean_object* exceed_res = edgesExceedBound(w, upperbound);
+    lean_object* output = edgesExceedBound(w, upperbound);
     
     bool exceeded = false;
-    if (lean_is_scalar(exceed_res)) {
-        uint8_t result = lean_unbox(exceed_res);
+    if (lean_is_scalar(output)) {
+        uint8_t result = lean_unbox(output);
         exceeded = (result == 1);
         std::cout << "Edge counter result: " << (int)result << std::endl;
     } else {
         std::cerr << "Error: Invalid result from edgesExceedBound" << std::endl;
     }
     
-    // Clean up Lean objects
-    lean_dec_ref(upperbound);
-    lean_dec_ref(exceed_res);
+    // No cleanup to avoid segfault (matching edge_counter.cpp)
     
     auto end_time = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> elapsed = end_time - start_time;
