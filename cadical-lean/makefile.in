@@ -28,7 +28,7 @@ CXXFLAGS+=$(LEANINCLUDES)
 # Add library paths for linking
 LDFLAGS=-L$(LEAN_LIB) -L../Leansat/.lake/build/lib
 
-LIBS=@LIBS@ $(LEANLIBS)
+LIBS=@LIBS@
 
 ############################################################################
 #    It is usually not necessary to change anything below this line!       #
@@ -59,13 +59,13 @@ all: libcadical.a cadical-lean cadical mobical
 # tester 'mobical') and the library are the main build targets.
 
 cadical-lean: cadical-lean.o libcadical.a makefile
-	$(COMPILE) -o $@ $< -L. -lcadical $(LDFLAGS) $(LIBS)
+	$(COMPILE) -o $@ $< -L. -lcadical $(LDFLAGS) $(LEANLIBS) $(LIBS)
 
 cadical: cadical.o libcadical.a makefile
 	$(COMPILE) -o $@ $< -L. -lcadical $(LIBS)
 
-mobical: mobical.o libcadical.a makefile $(LIBS)
-	$(COMPILE) -o $@ $< -L. -lcadical
+mobical: mobical.o libcadical.a makefile
+	$(COMPILE) -o $@ $< -L. -lcadical $(LIBS)
 
 libcadical.a: $(OBJ) makefile
 	ar rc $@ $(OBJ)
