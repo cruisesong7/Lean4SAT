@@ -3,6 +3,7 @@
 #include <cassert>
 #include <cstdlib>
 #include <sstream>
+#include <chrono>
 
 CadicalLean::CadicalLean(CaDiCaL::Solver * s, int order, int edge_bound, const std::string& edge_counter_path,
                          int degree_bound, const std::string& degree_counter_path) 
@@ -15,7 +16,11 @@ CadicalLean::CadicalLean(CaDiCaL::Solver * s, int order, int edge_bound, const s
       edge_counter_path(edge_counter_path),
       degree_bound(degree_bound),
       degree_counter_path(degree_counter_path),
-      sol_count(0) {
+      sol_count(0),
+      edge_check_calls(0),
+      degree_check_calls(0),
+      edge_check_time(0.0),
+      degree_check_time(0.0) {
     
     solver->connect_external_propagator(this);
     for (int i = 0; i < num_edge_vars; i++) {
@@ -88,8 +93,49 @@ void CadicalLean::notify_new_decision_level () {
 void CadicalLean::notify_backtrack (size_t new_level) {
 }
 
-bool CadicalLean::cb_check_found_model (const std::vector<int> & model) {
+bool CadicalLean::cb_check_found_model(const std::vector<int> & model) {
     assert(model.size() == num_edge_vars);
+    
+    // Check if the model satisfies the edge bound constraint
+    bool constraint_violated = false;
+    
+    // First, update the assignment based on the model
+    for (size_t i = 0; i < model.size(); i++) {
+        int lit = model[i];
+        assign[i] = (lit > 0) ? l_True : l_False;
+    }
+    
+    // Check edge count if edge_bound is non-negative
+    if (edge_bound >= 0) {
+        if (check_edge_count()) {
+            constraint_violated = true;
+        }
+    }
+    
+    // Check degree count if degree_bound is non-negative
+    if (degree_bound >= 0) {
+        if (check_degree_count()) {
+            constraint_violated = true;
+        }
+    }
+    
+    // If either constraint is violated, add blocking clause but don't count as solution
+    if (constraint_violated) {
+        std::vector<int> clause = generate_blocking_clause();
+        if (!clause.empty()) {
+            std::cout << "Model violates constraint bound. Adding blocking clause: ";
+            for (const auto& lit : clause) {
+                std::cout << lit << " ";
+            }
+            std::cout << std::endl;
+            
+            new_clauses.push_back(clause);
+            solver->add_trusted_clause(clause);
+        }
+        return false; // Continue searching
+    }
+    
+    // If constraints are satisfied, count as a solution
     sol_count += 1;
 
     std::cout << "Found model #" << sol_count << ": ";
@@ -102,7 +148,7 @@ bool CadicalLean::cb_check_found_model (const std::vector<int> & model) {
     }
     std::cout << std::endl;
 
-    // Instead of directly adding the clause, store it for later addition
+    // Add blocking clause for this solution
     new_clauses.push_back(clause);
     solver->add_trusted_clause(clause);
 
@@ -150,6 +196,9 @@ int CadicalLean::cb_add_reason_clause_lit (int plit) {
 }
 
 bool CadicalLean::check_edge_count() {
+    auto start_time = std::chrono::high_resolution_clock::now();
+    edge_check_calls++;
+    
     // Prepare the command to run edge_counter with current assignment
     std::stringstream cmd;
     cmd << edge_counter_path << " " << edge_bound;  // First argument is the bound
@@ -202,11 +251,18 @@ bool CadicalLean::check_edge_count() {
         return false;
     }
     
+    auto end_time = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> elapsed = end_time - start_time;
+    edge_check_time += elapsed.count();
+    
     // Return true if bound is exceeded (result is 1)
     return (exceeded == 1);
 }
 
 bool CadicalLean::check_degree_count() {
+    auto start_time = std::chrono::high_resolution_clock::now();
+    degree_check_calls++;
+    
     // Prepare the command to run degree_counter with current assignment
     std::stringstream cmd;
     cmd << degree_counter_path << " " << degree_bound;  // First argument is the bound
@@ -259,6 +315,10 @@ bool CadicalLean::check_degree_count() {
         return false;
     }
     
+    auto end_time = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> elapsed = end_time - start_time;
+    degree_check_time += elapsed.count();
+    
     // Return true if bound is exceeded (result is 1)
     return (exceeded == 1);
 }
@@ -274,4 +334,23 @@ std::vector<int> CadicalLean::generate_blocking_clause() {
     }
     
     return clause;
+}
+
+void CadicalLean::print_statistics() {
+    std::cout << "\n=== CadicalLean Statistics ===\n";
+    std::cout << "Total solutions found: " << sol_count << "\n";
+    
+    if (edge_bound >= 0) {
+        std::cout << "Edge counter calls: " << edge_check_calls << "\n";
+        std::cout << "Total time spent in edge checking: " << edge_check_time << " seconds\n";
+        std::cout << "Average time per edge check: " << (edge_check_calls > 0 ? edge_check_time / edge_check_calls : 0) << " seconds\n";
+    }
+    
+    if (degree_bound >= 0) {
+        std::cout << "Degree counter calls: " << degree_check_calls << "\n";
+        std::cout << "Total time spent in degree checking: " << degree_check_time << " seconds\n";
+        std::cout << "Average time per degree check: " << (degree_check_calls > 0 ? degree_check_time / degree_check_calls : 0) << " seconds\n";
+    }
+    
+    std::cout << "================================\n";
 }

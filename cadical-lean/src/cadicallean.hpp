@@ -21,6 +21,12 @@ private:
     int degree_bound;
     std::string degree_counter_path;
     int sol_count = 0;
+    
+    // Time profiling
+    double edge_check_time = 0.0;
+    double degree_check_time = 0.0;
+    int edge_check_calls = 0;
+    int degree_check_calls = 0;
 
     static const int l_True = 1;
     static const int l_False = -1;
@@ -47,6 +53,9 @@ public:
     int cb_decide() override;
     int cb_propagate() override;
     int cb_add_reason_clause_lit(int plit) override;
+    
+    // Print statistics
+    void print_statistics();
 };
 
 #endif // CADICALLEAN_HPP

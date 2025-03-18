@@ -924,6 +924,12 @@ int App::main (int argc, char **argv) {
                                      degree_bound, degree_counter_path);
     }
     res = solver->solve ();
+    
+    // Print statistics if we used CadicalLean
+    if (cadical_lean) {
+      cadical_lean->print_statistics();
+      delete cadical_lean;
+    }
   }
 
   if (solver->proof_specified) {
