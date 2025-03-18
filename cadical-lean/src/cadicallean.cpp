@@ -13,6 +13,7 @@ extern "C" void lean_initialize_runtime_module();
 extern "C" void lean_initialize();
 extern "C" void lean_io_mark_end_initialization();
 extern "C" lean_object* initialize_Leansat(uint8_t builtin, lean_object* w);
+extern "C" lean_object* DegreeExceedBound(lean_object* w, lean_object* upperbound);
 
 CadicalLean::CadicalLean(CaDiCaL::Solver * s, int order, int edge_bound, const std::string& edge_counter_path,
                          int degree_bound, const std::string& degree_counter_path) 
@@ -272,64 +273,50 @@ bool CadicalLean::check_degree_count() {
     auto start_time = std::chrono::high_resolution_clock::now();
     degree_check_calls++;
     
-    // Prepare the command to run degree_counter with current assignment
-    std::stringstream cmd;
-    cmd << degree_counter_path << " " << degree_bound;  // First argument is the bound
-    
-    // Add all variable assignments in the required format
-    // For each potential edge variable, add:
-    // - The positive variable number if assigned true
-    // - The negative variable number if assigned false
-    // - 0 if the variable is unassigned
+    // Prepare the input string for the degree counter
+    std::stringstream ss;
     for (int i = 0; i < num_edge_vars; i++) {
+        if (i > 0) ss << " ";
         int var_num = i + 1;  // Convert to 1-based indexing
         if (assign[i] == l_True) {
-            cmd << " " << var_num;  // Positive variable number
+            ss << var_num;  // Positive variable number
         } else if (assign[i] == l_False) {
-            cmd << " " << -var_num;  // Negative variable number
+            ss << -var_num;  // Negative variable number
         } else {
-            cmd << " " << 0;  // Unassigned variable
+            ss << 0;  // Unassigned variable
         }
     }
+    std::string input_string = ss.str();
     
-    std::cout << "Running degree counter: " << cmd.str() << std::endl;
+    std::cout << "Checking degree count with input: " << input_string << std::endl;
     
-    // Execute the command and capture output
-    FILE* pipe = popen(cmd.str().c_str(), "r");
-    if (!pipe) {
-        std::cerr << "Error executing degree counter" << std::endl;
-        return false;
+    // Call the Lean functions directly - matching degree_counter.cpp implementation
+    lean_object* input_str = lean_mk_string(input_string.c_str());
+    lean_object* w = readInput_Str(input_str);
+    lean_dec_ref(input_str);
+    
+    // Use the bound from member variable - convert to unsigned for Lean
+    unsigned int abs_bound = (degree_bound < 0) ? 0 : degree_bound;
+    lean_object* upperbound = lean_unsigned_to_nat(abs_bound);
+    
+    lean_object* output = DegreeExceedBound(w, upperbound);
+    
+    bool exceeded = false;
+    if (lean_is_scalar(output)) {
+        uint8_t result = lean_unbox(output);
+        exceeded = (result == 1);
+        std::cout << "Degree counter result: " << (int)result << std::endl;
+    } else {
+        std::cerr << "Error: Invalid result from DegreeExceedBound" << std::endl;
     }
     
-    // Read the binary result (0 or 1)
-    char buffer[128];
-    std::string result = "";
-    while (!feof(pipe)) {
-        if (fgets(buffer, 128, pipe) != NULL)
-            result += buffer;
-    }
-    pclose(pipe);
-    
-    // Trim whitespace
-    result.erase(0, result.find_first_not_of(" \n\r\t"));
-    result.erase(result.find_last_not_of(" \n\r\t") + 1);
-    
-    // Parse the output - should be 0 or 1
-    int exceeded = 0;
-    try {
-        exceeded = std::stoi(result);
-        std::cout << "Degree counter result: " << exceeded << std::endl;
-    } catch (const std::exception& e) {
-        std::cerr << "Error parsing degree counter output: " << result << std::endl;
-        return false;
-    }
+    // No cleanup to avoid segfault (matching degree_counter.cpp)
     
     auto end_time = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> elapsed = end_time - start_time;
     degree_check_time += elapsed.count();
     
-    // Return true if bound is exceeded (result is 1)
-    return (exceeded == 1);
+    return exceeded;
 }
 
 std::vector<int> CadicalLean::generate_blocking_clause() {
