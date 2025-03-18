@@ -223,31 +223,36 @@ bool CadicalLean::check_edge_count() {
     edge_check_calls++;
     
     // Prepare the input string for the edge counter
+    // The Lean function expects a specific format: each position i should contain either i, -i, or 0
+    // NOT the literal values from the solver
     std::stringstream ss;
     for (int i = 0; i < num_edge_vars; i++) {
         if (i > 0) ss << " ";
         int var_num = i + 1;  // Convert to 1-based indexing
         if (assign[i] == l_True) {
-            ss << var_num;  // Positive variable number
+            ss << var_num;  // Position i contains i (true)
         } else if (assign[i] == l_False) {
-            ss << -var_num;  // Negative variable number
+            ss << -var_num;  // Position i contains -i (false)
         } else {
-            ss << 0;  // Unassigned variable
+            ss << 0;  // Position i contains 0 (unassigned)
         }
     }
     std::string input_string = ss.str();
     
     std::cout << "Checking edge count with input: " << input_string << std::endl;
     
-    // Call the Lean functions directly
+    // Call the Lean functions directly - following the pattern from edge_counter.cpp
     lean_object* input_str = lean_mk_string(input_string.c_str());
     lean_object* w = lean_io_mk_world();
+    
+    // First call readInput_Str to parse the input
     lean_object* io_res = readInput_Str(input_str);
     
     // Check if IO result is ok
     if (!lean_io_result_is_ok(io_res)) {
         std::cerr << "Error in readInput_Str" << std::endl;
         lean_dec_ref(input_str);
+        lean_dec_ref(w);  // Make sure to clean up the world object
         return false;
     }
     
