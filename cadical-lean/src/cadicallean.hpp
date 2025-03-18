@@ -27,6 +27,9 @@ private:
     double degree_check_time = 0.0;
     int edge_check_calls = 0;
     int degree_check_calls = 0;
+    
+    // Flag to determine whether to use Lean or direct C++ implementation
+    bool use_lean = true;
 
     static const int l_True = 1;
     static const int l_False = -1;
@@ -38,9 +41,10 @@ private:
     std::vector<int> generate_blocking_clause();
 
 public:
-    // Updated constructor with degree parameters
+    // Updated constructor with use_lean parameter
     CadicalLean(CaDiCaL::Solver* s, int order, int edge_bound, const std::string& edge_counter_path = "./edge_counter",
-                int degree_bound = -1, const std::string& degree_counter_path = "./degree_counter");
+                int degree_bound = -1, const std::string& degree_counter_path = "./degree_counter", 
+                bool use_lean = true);
     ~CadicalLean();
 
     // ExternalPropagator interface methods
