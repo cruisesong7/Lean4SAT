@@ -241,31 +241,29 @@ bool CadicalLean::check_edge_count() {
     
     std::cout << "Checking edge count with input: " << input_string << std::endl;
     
-    // Call the Lean functions directly - following the pattern from edge_counter.cpp
+    // Call the Lean functions directly - following the pattern from edge_counter.cpp exactly
     lean_object* input_str = lean_mk_string(input_string.c_str());
-    lean_object* w = lean_io_mk_world();
     
-    // First call readInput_Str to parse the input
-    lean_object* io_res = readInput_Str(input_str);
+    // First call readInput_Str to parse the input - this returns an IO result
+    lean_object* io_res = readInput_Str(lean_io_mk_world());
     
     // Check if IO result is ok
     if (!lean_io_result_is_ok(io_res)) {
         std::cerr << "Error in readInput_Str" << std::endl;
         lean_dec_ref(input_str);
-        lean_dec_ref(w);  // Make sure to clean up the world object
+        lean_dec_ref(io_res);
         return false;
     }
     
-    // Extract world from IO result
-    w = lean_io_result_get_value(io_res);
+    // Extract the world from IO result
+    lean_object* w = lean_io_result_get_value(io_res);
     lean_dec_ref(io_res);
-    lean_dec_ref(input_str);
     
     // Use the bound from member variable - convert to unsigned for Lean
     unsigned int abs_bound = (edge_bound < 0) ? 0 : edge_bound;
     lean_object* upperbound = lean_unsigned_to_nat(abs_bound);
     
-    // Call edgesExceedBound
+    // Call edgesExceedBound with the world and bound
     lean_object* exceed_res = edgesExceedBound(w, upperbound);
     
     bool exceeded = false;
@@ -278,6 +276,7 @@ bool CadicalLean::check_edge_count() {
     }
     
     // Clean up Lean objects
+    lean_dec_ref(input_str);
     lean_dec_ref(upperbound);
     lean_dec_ref(exceed_res);
     
