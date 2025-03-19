@@ -425,4 +425,3 @@ void CadicalLean::print_statistics() {
     
     std::cout << "================================\n";
 }
-}
