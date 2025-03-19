@@ -309,20 +309,55 @@ bool CadicalLean::check_degree_count() {
     degree_check_calls++;
     
     if (!use_lean) {
+        // Debug: Print partial assignment
+        std::cout << "DEBUG: Partial assignment: ";
+        for (int i = 0; i < num_edge_vars; i++) {
+            if (assign[i] == l_True) {
+                std::cout << (i + 1) << " ";
+            } else if (assign[i] == l_False) {
+                std::cout << -(i + 1) << " ";
+            } else {
+                std::cout << "0 ";
+            }
+        }
+        std::cout << std::endl;
+        
         // Direct C++ implementation for degree counting
         // Create an adjacency list representation
         std::vector<std::vector<int>> adj_list(n);
         
         // Populate adjacency list based on the current assignment
         int idx = 0;
+        
+        // Debug: Print adjacency matrix representation
+        std::cout << "DEBUG: Adjacency matrix:" << std::endl;
+        std::cout << "    ";
+        for (int j = 0; j < n; j++) {
+            std::cout << j << " ";
+        }
+        std::cout << std::endl;
+        
         for (int i = 0; i < n; i++) {
-            for (int j = i + 1; j < n; j++) {
-                if (assign[idx] == l_True) {
-                    adj_list[i].push_back(j);
-                    adj_list[j].push_back(i);
+            std::cout << i << " | ";
+            for (int j = 0; j < n; j++) {
+                if (i == j) {
+                    std::cout << "- ";
+                } else if (j > i) {
+                    int edge_idx = (i * (2 * n - i - 1)) / 2 + (j - i - 1);
+                    bool has_edge = (assign[edge_idx] == l_True);
+                    std::cout << (has_edge ? "1 " : "0 ");
+                    
+                    if (has_edge) {
+                        adj_list[i].push_back(j);
+                        adj_list[j].push_back(i);
+                    }
+                } else { // j < i
+                    int edge_idx = (j * (2 * n - j - 1)) / 2 + (i - j - 1);
+                    bool has_edge = (assign[edge_idx] == l_True);
+                    std::cout << (has_edge ? "1 " : "0 ");
                 }
-                idx++;
             }
+            std::cout << std::endl;
         }
         
         // Debug: Print adjacency list
