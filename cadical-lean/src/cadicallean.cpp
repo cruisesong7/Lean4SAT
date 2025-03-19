@@ -325,24 +325,38 @@ bool CadicalLean::check_degree_count() {
             }
         }
         
-        // Check if any vertex has degree exceeding or equal to the bound
+        // Debug: Print adjacency list
+        std::cout << "DEBUG: Adjacency list:" << std::endl;
         for (int i = 0; i < n; i++) {
-            int vertex_degree = static_cast<int>(adj_list[i].size());
-            if (vertex_degree >= degree_bound) {
+            std::cout << "  Vertex " << i << " connected to: ";
+            for (int neighbor : adj_list[i]) {
+                std::cout << neighbor << " ";
+            }
+            std::cout << "(degree: " << adj_list[i].size() << ")" << std::endl;
+        }
+        
+        // Check if any vertex has degree exceeding or equal to the bound
+        int max_degree = 0;
+        for (int i = 0; i < n; i++) {
+            max_degree = std::max(max_degree, static_cast<int>(adj_list[i].size()));
+            if (static_cast<int>(adj_list[i].size()) >= degree_bound) {
                 auto end_time = std::chrono::high_resolution_clock::now();
                 degree_check_time += std::chrono::duration<double>(end_time - start_time).count();
                 
-                // Optional debug output
-                // std::cout << "Vertex " << i << " has degree " << vertex_degree << " >= bound " << degree_bound << std::endl;
-                
+                // Debug: Print violation information
+                std::cout << "DEBUG: Degree bound violated at vertex " << i 
+                          << " with degree " << adj_list[i].size() 
+                          << " (bound: " << degree_bound << ")" << std::endl;
                 return true;
             }
         }
         
-        // If we get here, no vertex exceeded the degree bound
         auto end_time = std::chrono::high_resolution_clock::now();
         degree_check_time += std::chrono::duration<double>(end_time - start_time).count();
         
+        // Debug: Print max degree information
+        std::cout << "DEBUG: Max degree found: " << max_degree 
+                  << " (bound: " << degree_bound << ")" << std::endl;
         return false;
     }
     
