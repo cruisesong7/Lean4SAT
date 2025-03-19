@@ -326,24 +326,23 @@ bool CadicalLean::check_degree_count() {
         }
         
         // Check if any vertex has degree exceeding or equal to the bound
-        int max_degree = 0;
         for (int i = 0; i < n; i++) {
-            max_degree = std::max(max_degree, static_cast<int>(adj_list[i].size()));
-            if (static_cast<int>(adj_list[i].size()) >= degree_bound) {
+            int vertex_degree = static_cast<int>(adj_list[i].size());
+            if (vertex_degree >= degree_bound) {
                 auto end_time = std::chrono::high_resolution_clock::now();
                 degree_check_time += std::chrono::duration<double>(end_time - start_time).count();
                 
-                // Comment out max degree printing
-                // std::cout << "C++ max degree: " << max_degree << " (bound: " << degree_bound << ")" << std::endl;
+                // Optional debug output
+                // std::cout << "Vertex " << i << " has degree " << vertex_degree << " >= bound " << degree_bound << std::endl;
+                
                 return true;
             }
         }
         
+        // If we get here, no vertex exceeded the degree bound
         auto end_time = std::chrono::high_resolution_clock::now();
         degree_check_time += std::chrono::duration<double>(end_time - start_time).count();
         
-        // Comment out max degree printing
-        // std::cout << "C++ max degree: " << max_degree << " (bound: " << degree_bound << ")" << std::endl;
         return false;
     }
     
