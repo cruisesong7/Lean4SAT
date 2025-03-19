@@ -10,6 +10,24 @@
 CXX=@CXX@
 CXXFLAGS=@CXXFLAGS@
 
+# Get Lean version from lean-toolchain file if it exists
+LEAN_VERSION=$(shell if [ -f ../lean-toolchain ]; then cat ../lean-toolchain | sed 's/.*://'; else echo ""; fi)
+
+# Set up Lean library paths - adjust these paths to match your environment
+LEAN_HOME=$(HOME)/.elan/toolchains/leanprover--lean4---$(LEAN_VERSION)
+LEAN_INCLUDE=$(LEAN_HOME)/include
+LEAN_LIB=$(LEAN_HOME)/lib/lean
+
+# Add Lean libraries for direct edge counter integration
+LEANLIBS=-lleanshared -lLeansat
+LEANINCLUDES=-I$(LEAN_INCLUDE)
+
+# Update CXXFLAGS to include Lean headers
+CXXFLAGS+=$(LEANINCLUDES)
+
+# Add library paths for linking
+LDFLAGS=-L$(LEAN_LIB) -L../Leansat/.lake/build/lib
+
 LIBS=@LIBS@
 
 ############################################################################
@@ -41,13 +59,13 @@ all: libcadical.a cadical-lean cadical mobical
 # tester 'mobical') and the library are the main build targets.
 
 cadical-lean: cadical-lean.o libcadical.a makefile
-	$(COMPILE) -o $@ $< -L. -lcadical $(LIBS)
+	$(COMPILE) -o $@ $< -L. -lcadical $(LDFLAGS) $(LEANLIBS) $(LIBS)
 
 cadical: cadical.o libcadical.a makefile
 	$(COMPILE) -o $@ $< -L. -lcadical $(LIBS)
 
-mobical: mobical.o libcadical.a makefile $(LIBS)
-	$(COMPILE) -o $@ $< -L. -lcadical
+mobical: mobical.o libcadical.a makefile
+	$(COMPILE) -o $@ $< -L. -lcadical $(LIBS)
 
 libcadical.a: $(OBJ) makefile
 	ar rc $@ $(OBJ)
@@ -84,7 +102,7 @@ format:
 	clang-format -i ../test/*/*.[ch]
 
 clean:
-	rm -f *.o *.a cadical mobical makefile build.hpp
+	rm -f *.o *.a cadical mobical cadical-lean makefile build.hpp
 	rm -f *.gcda *.gcno *.gcov gmon.out
 
 test: all

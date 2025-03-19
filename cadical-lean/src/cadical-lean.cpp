@@ -209,6 +209,15 @@ void App::print_usage (bool all) {
         "options and then values specified through environment "
         "variables.\n",
         stdout);
+
+    printf (
+        "  --strict-edge-bound <n>   set strict upper bound on number of edges\n"
+        "  --edge-counter <path>     path to edge counter executable\n"
+        "  --strict-degree-bound <n> set strict upper bound on vertex degree\n"
+        "  --degree-counter <path>   path to degree counter executable\n"
+        "  -nolean                   use direct C++ implementation instead of Lean\n"
+        "\n"
+    );
   }
 
   //------------------------------------------------------------------------
@@ -397,6 +406,7 @@ int App::main (int argc, char **argv) {
   const char* edge_counter_path = "./edge_counter";
   int degree_bound = -1;  // Default: no limit
   const char* degree_counter_path = "./degree_counter";
+  bool use_lean = true;  // Default: use Lean
 
   // First, process all options
   for (int i = 1; i < argc; i++) {
@@ -563,6 +573,8 @@ int App::main (int argc, char **argv) {
         APPERR ("invalid time limit");
       else
         time_limit_specified = argv[i];
+    } else if (!strcmp(argv[i], "-nolean")) {
+      use_lean = false;
     }
 #ifndef QUIET
     else if (!strcmp (argv[i], "-q"))
@@ -921,9 +933,15 @@ int App::main (int argc, char **argv) {
     CadicalLean* cadical_lean = nullptr;
     if (order > 0) {
       cadical_lean = new CadicalLean(solver, order, edge_bound, edge_counter_path, 
-                                     degree_bound, degree_counter_path);
+                                     degree_bound, degree_counter_path, use_lean);
     }
     res = solver->solve ();
+    
+    // Print statistics if we used CadicalLean
+    if (cadical_lean) {
+      cadical_lean->print_statistics();
+      delete cadical_lean;
+    }
   }
 
   if (solver->proof_specified) {

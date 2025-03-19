@@ -3,9 +3,20 @@
 #include <cassert>
 #include <cstdlib>
 #include <sstream>
+#include <chrono>
+#include <lean/lean.h>
+
+// Add these external function declarations
+extern "C" lean_object* readInput_Str(lean_object* w);
+extern "C" lean_object* edgesExceedBound(lean_object* w, lean_object* upperbound);
+extern "C" void lean_initialize_runtime_module();
+extern "C" void lean_initialize();
+extern "C" void lean_io_mark_end_initialization();
+extern "C" lean_object* initialize_Leansat(uint8_t builtin, lean_object* w);
+extern "C" lean_object* DegreeExceedBound(lean_object* w, lean_object* upperbound);
 
 CadicalLean::CadicalLean(CaDiCaL::Solver * s, int order, int edge_bound, const std::string& edge_counter_path,
-                         int degree_bound, const std::string& degree_counter_path) 
+                         int degree_bound, const std::string& degree_counter_path, bool use_lean) 
     : solver(s), 
       n(order), 
       num_edge_vars(n * (n - 1) / 2),
@@ -15,7 +26,12 @@ CadicalLean::CadicalLean(CaDiCaL::Solver * s, int order, int edge_bound, const s
       edge_counter_path(edge_counter_path),
       degree_bound(degree_bound),
       degree_counter_path(degree_counter_path),
-      sol_count(0) {
+      sol_count(0),
+      edge_check_calls(0),
+      degree_check_calls(0),
+      edge_check_time(0.0),
+      degree_check_time(0.0),
+      use_lean(use_lean) {
     
     solver->connect_external_propagator(this);
     for (int i = 0; i < num_edge_vars; i++) {
@@ -25,6 +41,22 @@ CadicalLean::CadicalLean(CaDiCaL::Solver * s, int order, int edge_bound, const s
     current_trail.push_back(std::vector<int>());
     for (int i = 0; i < num_edge_vars; i++) {
         solver->add_observed_var(i + 1);
+    }
+    
+    // Initialize Lean runtime only if we're using Lean
+    if (use_lean) {
+        lean_initialize_runtime_module();
+        lean_initialize();
+        
+        lean_object* res = initialize_Leansat(1, lean_io_mk_world());
+        if (lean_io_result_is_ok(res)) {
+            lean_dec_ref(res);
+        } else {
+            lean_io_result_show_error(res);
+            lean_dec_ref(res);
+            std::cerr << "Failed to initialize Lean runtime" << std::endl;
+        }
+        lean_io_mark_end_initialization();
     }
 }
 
@@ -41,7 +73,8 @@ void CadicalLean::notify_assignment(int lit, bool is_fixed) {
     assign[var] = (lit > 0) ? l_True : l_False;
     fixed[var] = is_fixed;
 
-    // Print the partial assignment
+    // Comment out partial assignment printing
+    /*
     std::cout << "Partial assignment: ";
     for (int i = 0; i < num_edge_vars; i++) {
         if (assign[i] != l_Undef) {
@@ -49,6 +82,7 @@ void CadicalLean::notify_assignment(int lit, bool is_fixed) {
         }
     }
     std::cout << std::endl;
+    */
     
     bool constraint_violated = false;
     
@@ -70,11 +104,14 @@ void CadicalLean::notify_assignment(int lit, bool is_fixed) {
     if (constraint_violated) {
         std::vector<int> clause = generate_blocking_clause();
         if (!clause.empty()) {
+            // Comment out blocking clause printing
+            /*
             std::cout << "Constraint bound exceeded. Adding blocking clause: ";
             for (const auto& lit : clause) {
                 std::cout << lit << " ";
             }
             std::cout << std::endl;
+            */
             
             new_clauses.push_back(clause);
             solver->add_trusted_clause(clause);
@@ -88,10 +125,55 @@ void CadicalLean::notify_new_decision_level () {
 void CadicalLean::notify_backtrack (size_t new_level) {
 }
 
-bool CadicalLean::cb_check_found_model (const std::vector<int> & model) {
+bool CadicalLean::cb_check_found_model(const std::vector<int> & model) {
     assert(model.size() == num_edge_vars);
+    
+    // Check if the model satisfies the edge bound constraint
+    bool constraint_violated = false;
+    
+    // First, update the assignment based on the model
+    for (size_t i = 0; i < model.size(); i++) {
+        int lit = model[i];
+        assign[i] = (lit > 0) ? l_True : l_False;
+    }
+    
+    // Check edge count if edge_bound is non-negative
+    if (edge_bound >= 0) {
+        if (check_edge_count()) {
+            constraint_violated = true;
+        }
+    }
+    
+    // Check degree count if degree_bound is non-negative
+    if (degree_bound >= 0) {
+        if (check_degree_count()) {
+            constraint_violated = true;
+        }
+    }
+    
+    // If either constraint is violated, add blocking clause but don't count as solution
+    if (constraint_violated) {
+        std::vector<int> clause = generate_blocking_clause();
+        if (!clause.empty()) {
+            // Comment out model violation printing
+            /*
+            std::cout << "Model violates constraint bound. Adding blocking clause: ";
+            for (const auto& lit : clause) {
+                std::cout << lit << " ";
+            }
+            std::cout << std::endl;
+            */
+            
+            new_clauses.push_back(clause);
+            solver->add_trusted_clause(clause);
+        }
+        return false; // Continue searching
+    }
+    
+    // If constraints are satisfied, count as a solution
     sol_count += 1;
 
+    // Print the found model (keep this part)
     std::cout << "Found model #" << sol_count << ": ";
     std::vector<int> clause;
     for (const auto& lit: model) {
@@ -102,16 +184,18 @@ bool CadicalLean::cb_check_found_model (const std::vector<int> & model) {
     }
     std::cout << std::endl;
 
-    // Instead of directly adding the clause, store it for later addition
+    // Add blocking clause for this solution
     new_clauses.push_back(clause);
     solver->add_trusted_clause(clause);
 
-    // Print out the added blocking clause
+    // Comment out blocking clause printing
+    /*
     std::cout << "Added blocking clause: ";
     for (const auto& lit : clause) {
         std::cout << lit << " ";
     }
     std::cout << std::endl;
+    */
 
     // Signal that we want to continue searching
     return false;
@@ -145,122 +229,171 @@ int CadicalLean::cb_propagate () {
 }
 
 int CadicalLean::cb_add_reason_clause_lit (int plit) {
-    std::cout << "Adding reason clause literal: " << plit << std::endl;
+    // Comment out reason clause printing
+    // std::cout << "Adding reason clause literal: " << plit << std::endl;
     return 0;
 }
 
 bool CadicalLean::check_edge_count() {
-    // Prepare the command to run edge_counter with current assignment
-    std::stringstream cmd;
-    cmd << edge_counter_path << " " << edge_bound;  // First argument is the bound
+    auto start_time = std::chrono::high_resolution_clock::now();
+    edge_check_calls++;
     
-    // Add all variable assignments in the required format
-    // For each potential edge variable, add:
-    // - The positive variable number if assigned true
-    // - The negative variable number if assigned false
-    // - 0 if the variable is unassigned
+    if (!use_lean) {
+        // Direct C++ implementation for edge counting
+        int edge_count = 0;
+        for (int i = 0; i < num_edge_vars; i++) {
+            if (assign[i] == l_True) {
+                edge_count++;
+            }
+        }
+        
+        auto end_time = std::chrono::high_resolution_clock::now();
+        edge_check_time += std::chrono::duration<double>(end_time - start_time).count();
+        
+        // Comment out edge count printing
+        // std::cout << "C++ edge count: " << edge_count << " (bound: " << edge_bound << ")" << std::endl;
+        return edge_count > edge_bound;
+    }
+    
+    // Use Lean for edge counting - keep the original implementation intact
+    // Prepare the input string for the edge counter
+    std::stringstream ss;
     for (int i = 0; i < num_edge_vars; i++) {
+        if (i > 0) ss << " ";
         int var_num = i + 1;  // Convert to 1-based indexing
         if (assign[i] == l_True) {
-            cmd << " " << var_num;  // Positive variable number
+            ss << var_num;  // Positive variable number
         } else if (assign[i] == l_False) {
-            cmd << " " << -var_num;  // Negative variable number
+            ss << -var_num;  // Negative variable number
         } else {
-            cmd << " " << 0;  // Unassigned variable
+            ss << 0;  // Unassigned variable
         }
     }
+    std::string input_string = ss.str();
     
-    std::cout << "Running edge counter: " << cmd.str() << std::endl;
+    // Comment out input printing
+    // std::cout << "Checking edge count with input: " << input_string << std::endl;
     
-    // Execute the command and capture output
-    FILE* pipe = popen(cmd.str().c_str(), "r");
-    if (!pipe) {
-        std::cerr << "Error executing edge counter" << std::endl;
-        return false;
+    // Call the Lean functions directly - matching edge_counter.cpp implementation
+    lean_object* input_str = lean_mk_string(input_string.c_str());
+    lean_object* w = readInput_Str(input_str);
+    lean_dec_ref(input_str);
+    
+    // Use the bound from member variable - convert to unsigned for Lean
+    unsigned int abs_bound = (edge_bound < 0) ? 0 : edge_bound;
+    lean_object* upperbound = lean_unsigned_to_nat(abs_bound);
+    
+    lean_object* output = edgesExceedBound(w, upperbound);
+    
+    bool exceeded = false;
+    if (lean_is_scalar(output)) {
+        uint8_t result = lean_unbox(output);
+        exceeded = (result == 1);
+        // Comment out result printing
+        // std::cout << "Edge counter result: " << (int)result << std::endl;
+    } else {
+        std::cerr << "Error: Invalid result from edgesExceedBound" << std::endl;
     }
     
-    // Read the binary result (0 or 1)
-    char buffer[128];
-    std::string result = "";
-    while (!feof(pipe)) {
-        if (fgets(buffer, 128, pipe) != NULL)
-            result += buffer;
-    }
-    pclose(pipe);
+    // No cleanup to avoid segfault (matching edge_counter.cpp)
     
-    // Trim whitespace
-    result.erase(0, result.find_first_not_of(" \n\r\t"));
-    result.erase(result.find_last_not_of(" \n\r\t") + 1);
+    auto end_time = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> elapsed = end_time - start_time;
+    edge_check_time += elapsed.count();
     
-    // Parse the output - should be 0 or 1
-    int exceeded = 0;
-    try {
-        exceeded = std::stoi(result);
-        std::cout << "Edge counter result: " << exceeded << std::endl;
-    } catch (const std::exception& e) {
-        std::cerr << "Error parsing edge counter output: " << result << std::endl;
-        return false;
-    }
-    
-    // Return true if bound is exceeded (result is 1)
-    return (exceeded == 1);
+    return exceeded;
 }
 
 bool CadicalLean::check_degree_count() {
-    // Prepare the command to run degree_counter with current assignment
-    std::stringstream cmd;
-    cmd << degree_counter_path << " " << degree_bound;  // First argument is the bound
+    auto start_time = std::chrono::high_resolution_clock::now();
+    degree_check_calls++;
     
-    // Add all variable assignments in the required format
-    // For each potential edge variable, add:
-    // - The positive variable number if assigned true
-    // - The negative variable number if assigned false
-    // - 0 if the variable is unassigned
+    if (!use_lean) {
+        // Direct C++ implementation for degree counting
+        // Create an adjacency list representation
+        std::vector<std::vector<int>> adj_list(n);
+        
+        // Populate adjacency list based on the current assignment
+        int idx = 0;
+        for (int i = 0; i < n; i++) {
+            for (int j = i + 1; j < n; j++) {
+                if (assign[idx] == l_True) {
+                    adj_list[i].push_back(j);
+                    adj_list[j].push_back(i);
+                }
+                idx++;
+            }
+        }
+        
+        // Check if any vertex has degree exceeding the bound
+        int max_degree = 0;
+        for (int i = 0; i < n; i++) {
+            max_degree = std::max(max_degree, static_cast<int>(adj_list[i].size()));
+            if (static_cast<int>(adj_list[i].size()) > degree_bound) {
+                auto end_time = std::chrono::high_resolution_clock::now();
+                degree_check_time += std::chrono::duration<double>(end_time - start_time).count();
+                
+                // Comment out max degree printing
+                // std::cout << "C++ max degree: " << max_degree << " (bound: " << degree_bound << ")" << std::endl;
+                return true;
+            }
+        }
+        
+        auto end_time = std::chrono::high_resolution_clock::now();
+        degree_check_time += std::chrono::duration<double>(end_time - start_time).count();
+        
+        // Comment out max degree printing
+        // std::cout << "C++ max degree: " << max_degree << " (bound: " << degree_bound << ")" << std::endl;
+        return false;
+    }
+    
+    // Use Lean for degree counting - keep the original implementation intact
+    // Prepare the input string for the degree counter
+    std::stringstream ss;
     for (int i = 0; i < num_edge_vars; i++) {
+        if (i > 0) ss << " ";
         int var_num = i + 1;  // Convert to 1-based indexing
         if (assign[i] == l_True) {
-            cmd << " " << var_num;  // Positive variable number
+            ss << var_num;  // Positive variable number
         } else if (assign[i] == l_False) {
-            cmd << " " << -var_num;  // Negative variable number
+            ss << -var_num;  // Negative variable number
         } else {
-            cmd << " " << 0;  // Unassigned variable
+            ss << 0;  // Unassigned variable
         }
     }
+    std::string input_string = ss.str();
     
-    std::cout << "Running degree counter: " << cmd.str() << std::endl;
+    // Comment out input printing
+    // std::cout << "Checking degree count with input: " << input_string << std::endl;
     
-    // Execute the command and capture output
-    FILE* pipe = popen(cmd.str().c_str(), "r");
-    if (!pipe) {
-        std::cerr << "Error executing degree counter" << std::endl;
-        return false;
+    // Call the Lean functions directly - matching degree_counter.cpp implementation
+    lean_object* input_str = lean_mk_string(input_string.c_str());
+    lean_object* w = readInput_Str(input_str);
+    lean_dec_ref(input_str);
+    
+    // Use the bound from member variable - convert to unsigned for Lean
+    unsigned int abs_bound = (degree_bound < 0) ? 0 : degree_bound;
+    lean_object* upperbound = lean_unsigned_to_nat(abs_bound);
+    
+    lean_object* output = DegreeExceedBound(w, upperbound);
+    
+    bool exceeded = false;
+    if (lean_is_scalar(output)) {
+        uint8_t result = lean_unbox(output);
+        exceeded = (result == 1);
+        // Comment out result printing
+        // std::cout << "Degree counter result: " << (int)result << std::endl;
+    } else {
+        std::cerr << "Error: Invalid result from DegreeExceedBound" << std::endl;
     }
     
-    // Read the binary result (0 or 1)
-    char buffer[128];
-    std::string result = "";
-    while (!feof(pipe)) {
-        if (fgets(buffer, 128, pipe) != NULL)
-            result += buffer;
-    }
-    pclose(pipe);
+    // No cleanup to avoid segfault (matching degree_counter.cpp)
     
-    // Trim whitespace
-    result.erase(0, result.find_first_not_of(" \n\r\t"));
-    result.erase(result.find_last_not_of(" \n\r\t") + 1);
+    auto end_time = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> elapsed = end_time - start_time;
+    degree_check_time += elapsed.count();
     
-    // Parse the output - should be 0 or 1
-    int exceeded = 0;
-    try {
-        exceeded = std::stoi(result);
-        std::cout << "Degree counter result: " << exceeded << std::endl;
-    } catch (const std::exception& e) {
-        std::cerr << "Error parsing degree counter output: " << result << std::endl;
-        return false;
-    }
-    
-    // Return true if bound is exceeded (result is 1)
-    return (exceeded == 1);
+    return exceeded;
 }
 
 std::vector<int> CadicalLean::generate_blocking_clause() {
@@ -274,4 +407,23 @@ std::vector<int> CadicalLean::generate_blocking_clause() {
     }
     
     return clause;
+}
+
+void CadicalLean::print_statistics() {
+    std::cout << "\n=== CadicalLean Statistics ===\n";
+    std::cout << "Total solutions found: " << sol_count << "\n";
+    
+    if (edge_bound >= 0) {
+        std::cout << "Edge counter calls: " << edge_check_calls << "\n";
+        std::cout << "Total time spent in edge checking: " << edge_check_time << " seconds\n";
+        std::cout << "Average time per edge check: " << (edge_check_calls > 0 ? edge_check_time / edge_check_calls : 0) << " seconds\n";
+    }
+    
+    if (degree_bound >= 0) {
+        std::cout << "Degree counter calls: " << degree_check_calls << "\n";
+        std::cout << "Total time spent in degree checking: " << degree_check_time << " seconds\n";
+        std::cout << "Average time per degree check: " << (degree_check_calls > 0 ? degree_check_time / degree_check_calls : 0) << " seconds\n";
+    }
+    
+    std::cout << "================================\n";
 }
