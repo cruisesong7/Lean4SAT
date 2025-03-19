@@ -2,6 +2,8 @@ import Mathlib.Data.List.Basic
 import Mathlib.Data.Matrix.Basic
 import Mathlib.Tactic.Linarith
 import Mathlib.Combinatorics.SimpleGraph.Finite
+import Mathlib.Combinatorics.SimpleGraph.AdjMatrix
+
 --------------------------------------------------
 /-
 The expected input format is the upper triangular portion of the edge adjacency matrix,
@@ -32,24 +34,15 @@ Here, the upper triangle (above the main diagonal) is provided by the input,
 and the lower triangle is its mirror image. The diagonal is typically omitted.
 -/
 
-@[export readInput_Int]
-def readInput_Int(input : List Int) : List (Option (Fin 2)) :=
+-- @[export readInput_Int]
+def readInput_Int(input : List Int) : List (Fin 2) :=
   input.map (λ x ↦
-    if x  = 0 then none  -- Zero maps to None (unknown)
-    else some (if x > 0 then 1 else 0)  -- Positive: Some 1, Negative: Some 0
+    if x > 0 then 1  -- Connected (>0) maps to 1
+    else 0 -- Disconnected and unknown (<=0) map to 0
   )
 @[export readInput_Str]
-def readInput_Str(input : String) : List (Option (Fin 2)) :=
+def readInput_Str(input : String) : List (Fin 2) :=
   readInput_Int ((input.splitOn " ").map (λ str ↦ str.toInt!))
-
--- @[export readInput1]
--- def readInput1 (input :  String) : List (Option (Fin 2)) :=
--- readInput (input.splitOn " ")
--- #eval readInput ([])
--- #eval readInput ("1 -2 3".splitOn " ") -- Expected: [some 1, some 0, some 1]
--- #eval readInput ("1 2 3".splitOn " ") -- Expected: [some 1, some 1, some 1]
--- #eval readInput ("-1 -2 -3".splitOn " ") -- Expected: [some 0, some 0, some 0]
--- #eval readInput ("1 -2 3 4".splitOn " ") -- Expected: [some 1, some 0, some 1]
 
 lemma List.get_ith_eq_tail_get_pred {α} [Inhabited α]:
 ∀ (l : List α) (i : ℕ), i ≠ 0 → i < l.length → l ≠ [] → l.get! i = (l.tail).get! i.pred := by
@@ -64,59 +57,49 @@ lemma List.get_ith_eq_tail_get_pred {α} [Inhabited α]:
     simp only [tmp, List.tail]
 
 theorem readInput_Int_correct : ∀ (input : List Int) (i : ℕ), i < (readInput_Int input).length →
-  ((input.get! i) > 0 → (readInput_Int input).get! i = some 1) ∧
-  ((input.get! i) < 0 → (readInput_Int input).get! i = some 0) ∧
-  ((input.get! i) = 0 → (readInput_Int input).get! i = none) := by
+  ((input.get! i) > 0 → (readInput_Int input).get! i = 1) ∧
+  ((input.get! i) ≤ 0 → (readInput_Int input).get! i = 0) := by
   intros input i i_bound
   simp [readInput_Int] at i_bound
   induction input generalizing i with
   | nil => simp_all
   | cons hd tl ih =>
-    refine ⟨?_, ?_, ?_⟩
+    refine ⟨?_, ?_⟩
     all_goals
       intros h
       by_cases ieq0 : i = 0
-    · simp_all[readInput_Int]; by_contra; simp_all
+    · simp_all[readInput_Int]
     swap
-    · simp_all[readInput_Int]; by_cases hd = 0 <;> simp_all; linarith
-    pick_goal 3
     · simp_all[readInput_Int]
     all_goals
       have tmp : ((hd :: tl).get! i) = (tl.get! (i - 1)) := by
         have _ := (hd::tl).get_ith_eq_tail_get_pred i ieq0 i_bound (by simp[readInput_Int])
         tauto
       have i_pred_bound: i - 1 < tl.length := by rw[← Nat.succ_pred ieq0, List.length, Nat.succ_lt_succ_iff] at i_bound; exact i_bound
-      rcases ih i.pred i_pred_bound with ⟨ih1, ih2, ih3⟩
+      rcases ih i.pred i_pred_bound with ⟨ih1, ih2⟩
       have tmp' := List.get_ith_eq_tail_get_pred (readInput_Int (hd :: tl)) i ieq0 (by simp[readInput_Int]; exact i_bound) (by simp[readInput_Int])
       rw [tmp] at h
     · rw [← ih1 h]
       tauto
     · rw [← ih2 h]
       tauto
-    · rw [← ih3 h]
-      tauto
+
 
 theorem readInput_Int_correct' : ∀ (input : List Int) (i : ℕ), i < (readInput_Int input).length →
-  ((readInput_Int input).get! i = some 1 →  (input.get! i) > 0) ∧
-  ((readInput_Int input).get! i = some 0 →  (input.get! i) < 0) ∧
-  ((readInput_Int input).get! i = none →  (input.get! i) = 0) := by
+  ((readInput_Int input).get! i = 1 →  (input.get! i) > 0) ∧
+  ((readInput_Int input).get! i = 0 →  (input.get! i) ≤ 0) := by
   intros input i i_bound
   simp [readInput_Int] at i_bound
   induction input generalizing i with
   | nil => simp_all
   | cons hd tl ih =>
-    refine ⟨?_, ?_, ?_⟩
+    refine ⟨?_, ?_⟩
     all_goals
       intros h
       by_cases ieq0 : i = 0
 
     · simp_all[readInput_Int]
     swap
-    · simp_all[readInput_Int]
-      by_cases hd = 0 <;> simp_all
-      have _ :=  lt_or_eq_of_le h
-      simp_all
-    pick_goal 3
     · simp_all[readInput_Int]
     all_goals
       have tmp : (hd :: tl)[i]! = (tl)[i-1]! := by
@@ -124,13 +107,11 @@ theorem readInput_Int_correct' : ∀ (input : List Int) (i : ℕ), i < (readInpu
         simp_all
       have i_pred_bound: i - 1 < tl.length := by rw[← Nat.succ_pred ieq0, List.length, Nat.succ_lt_succ_iff] at i_bound; exact i_bound
       have tmp' := List.get_ith_eq_tail_get_pred (readInput_Int (hd :: tl)) i ieq0 (by simp[readInput_Int]; exact i_bound) (by simp[readInput_Int])
-      rcases ih i.pred i_pred_bound with ⟨ih1, ih2, ih3⟩
+      rcases ih i.pred i_pred_bound with ⟨ih1, ih2⟩
       simp only [tmp'] at h
     · have tmp'' := ih1 h
       simp_all
     · have tmp'' := ih2 h
-      simp_all
-    · have tmp'' := ih3 h
       simp_all
 
 --------------------------------------------------
@@ -148,17 +129,54 @@ def edge2Ver (k N : ℕ) : Option (ℕ × ℕ) :=
       none
   else
     none
-#eval edge2Ver 1 3
+-- #eval edge2Ver 1 3
 
 
 -- Function to compute the index in the adjacency list for the edge between vertices i and j
-def ver2Edge (i j : Nat) (H : i < j): Nat :=
-  i + j * (j - 1) / 2 + 1
+def ver2Edge (i j : ℕ) (H : i < j): ℕ :=
+  i + j * (j - 1) / 2
 
-def SimpleGraph.mk_list (adjList : List (Option (Fin 2))) : SimpleGraph (Fin ((adjList.length)*(adjList.length)/2)) :=
+def graphOrderFromListLen (N : ℕ) : ℕ :=
+  (1 + Nat.sqrt (1 + 8 * N) / 2)
 
-  SimpleGraph.mk (λ v w ↦ if H : v < w then adjList.get! (ver2Edge v w H) = some 1
-  else if H : w < v then adjList.get! (ver2Edge w v H) = some 1
+-- #eval graphOrderFromListLen 6
+
+def adjListToAdjMat (adjList : List (Fin 2)) : Matrix (Fin (graphOrderFromListLen adjList.length)) (Fin (graphOrderFromListLen adjList.length)) (Fin 2) :=
+  λ i j =>
+  if H : i > j then adjList.get! (ver2Edge j i H)
+  else if H : j > i then adjList.get! (ver2Edge i j H)
+  else 0
+
+theorem isAdjMat (adjList : List (Fin 2)) : (adjListToAdjMat adjList).IsAdjMatrix := by
+  constructor
+  · intros i j
+    match (adjListToAdjMat adjList i j) with
+    | 0 => norm_num
+    | 1 => norm_num
+  · simp [Matrix.IsSymm.ext_iff]
+    intros i j
+    simp [adjListToAdjMat]
+    by_cases H : i = j
+    · simp_all
+    · push_neg at H
+      rw [ne_iff_lt_or_gt] at H
+      rcases H with h | h
+      · have h' := lt_asymm h; simp[h, h']
+      · have h' := lt_asymm h; simp_all
+  · intros i
+    simp [adjListToAdjMat]
+
+def SimpleGraph.mk_mat(adjList : List (Fin 2)) : SimpleGraph (Fin (graphOrderFromListLen adjList.length)) :=
+  Matrix.IsAdjMatrix.toGraph (isAdjMat adjList)
+
+instance mk_mat_DecidableRelAdj (adjList : List (Fin 2)): DecidableRel (SimpleGraph.mk_mat (adjList)).Adj := by
+  simp[SimpleGraph.mk_mat]
+  infer_instance
+
+def SimpleGraph.mk_list (adjList : List (Fin 2)) : SimpleGraph (Fin (graphOrderFromListLen adjList.length)) :=
+
+  SimpleGraph.mk (λ v w ↦ if H : v < w then adjList.get! (ver2Edge v w H) = 1
+  else if H : w < v then adjList.get! (ver2Edge w v H) = 1
   else False) -- neq -> v w = 1 or w v = 1
   (by
     -- Prove the symmetric property (undirected graph)
@@ -176,6 +194,6 @@ def SimpleGraph.mk_list (adjList : List (Option (Fin 2))) : SimpleGraph (Fin ((a
     intro x H
     simp_all
   )
-instance mk_List_DecidableRelAdj (adjList : List (Option (Fin 2))): DecidableRel (SimpleGraph.mk_list (adjList)).Adj := by
+instance mk_List_DecidableRelAdj (adjList : List (Fin 2)): DecidableRel (SimpleGraph.mk_list (adjList)).Adj := by
   simp[SimpleGraph.mk_list]
   infer_instance
