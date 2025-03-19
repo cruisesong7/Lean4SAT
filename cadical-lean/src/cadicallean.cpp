@@ -326,9 +326,6 @@ bool CadicalLean::check_degree_count() {
         // Create an adjacency list representation
         std::vector<std::vector<int>> adj_list(n);
         
-        // Populate adjacency list based on the current assignment
-        int idx = 0;
-        
         // Debug: Print adjacency matrix representation
         std::cout << "DEBUG: Adjacency matrix:" << std::endl;
         std::cout << "    ";
@@ -337,13 +334,17 @@ bool CadicalLean::check_degree_count() {
         }
         std::cout << std::endl;
         
+        // Correctly map variables to the adjacency matrix (column by column)
         for (int i = 0; i < n; i++) {
             std::cout << i << " | ";
             for (int j = 0; j < n; j++) {
                 if (i == j) {
                     std::cout << "- ";
                 } else if (j > i) {
-                    int edge_idx = (i * (2 * n - i - 1)) / 2 + (j - i - 1);
+                    // Column-by-column mapping
+                    int col = j;
+                    int row = i;
+                    int edge_idx = (col * (col - 1)) / 2 + row;
                     bool has_edge = (assign[edge_idx] == l_True);
                     std::cout << (has_edge ? "1 " : "0 ");
                     
@@ -352,7 +353,10 @@ bool CadicalLean::check_degree_count() {
                         adj_list[j].push_back(i);
                     }
                 } else { // j < i
-                    int edge_idx = (j * (2 * n - j - 1)) / 2 + (i - j - 1);
+                    // Column-by-column mapping
+                    int col = i;
+                    int row = j;
+                    int edge_idx = (col * (col - 1)) / 2 + row;
                     bool has_edge = (assign[edge_idx] == l_True);
                     std::cout << (has_edge ? "1 " : "0 ");
                 }
