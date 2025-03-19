@@ -173,7 +173,7 @@ bool CadicalLean::cb_check_found_model(const std::vector<int> & model) {
     // If constraints are satisfied, count as a solution
     sol_count += 1;
 
-    
+    // Print the found model (keep this part)
     std::cout << "Found model #" << sol_count << ": ";
     std::vector<int> clause;
     for (const auto& lit: model) {
@@ -183,12 +183,6 @@ bool CadicalLean::cb_check_found_model(const std::vector<int> & model) {
         clause.push_back(-lit);
     }
     std::cout << std::endl;
-    
-    // Create blocking clause without printing
-    std::vector<int> clause;
-    for (const auto& lit: model) {
-        clause.push_back(-lit);
-    }
 
     // Add blocking clause for this solution
     new_clauses.push_back(clause);
