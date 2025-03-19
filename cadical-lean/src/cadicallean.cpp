@@ -73,7 +73,8 @@ void CadicalLean::notify_assignment(int lit, bool is_fixed) {
     assign[var] = (lit > 0) ? l_True : l_False;
     fixed[var] = is_fixed;
 
-    // Print the partial assignment
+    // Comment out partial assignment printing
+    /*
     std::cout << "Partial assignment: ";
     for (int i = 0; i < num_edge_vars; i++) {
         if (assign[i] != l_Undef) {
@@ -81,6 +82,7 @@ void CadicalLean::notify_assignment(int lit, bool is_fixed) {
         }
     }
     std::cout << std::endl;
+    */
     
     bool constraint_violated = false;
     
@@ -102,11 +104,14 @@ void CadicalLean::notify_assignment(int lit, bool is_fixed) {
     if (constraint_violated) {
         std::vector<int> clause = generate_blocking_clause();
         if (!clause.empty()) {
+            // Comment out blocking clause printing
+            /*
             std::cout << "Constraint bound exceeded. Adding blocking clause: ";
             for (const auto& lit : clause) {
                 std::cout << lit << " ";
             }
             std::cout << std::endl;
+            */
             
             new_clauses.push_back(clause);
             solver->add_trusted_clause(clause);
@@ -150,11 +155,14 @@ bool CadicalLean::cb_check_found_model(const std::vector<int> & model) {
     if (constraint_violated) {
         std::vector<int> clause = generate_blocking_clause();
         if (!clause.empty()) {
+            // Comment out model violation printing
+            /*
             std::cout << "Model violates constraint bound. Adding blocking clause: ";
             for (const auto& lit : clause) {
                 std::cout << lit << " ";
             }
             std::cout << std::endl;
+            */
             
             new_clauses.push_back(clause);
             solver->add_trusted_clause(clause);
@@ -165,6 +173,7 @@ bool CadicalLean::cb_check_found_model(const std::vector<int> & model) {
     // If constraints are satisfied, count as a solution
     sol_count += 1;
 
+    
     std::cout << "Found model #" << sol_count << ": ";
     std::vector<int> clause;
     for (const auto& lit: model) {
@@ -174,17 +183,25 @@ bool CadicalLean::cb_check_found_model(const std::vector<int> & model) {
         clause.push_back(-lit);
     }
     std::cout << std::endl;
+    
+    // Create blocking clause without printing
+    std::vector<int> clause;
+    for (const auto& lit: model) {
+        clause.push_back(-lit);
+    }
 
     // Add blocking clause for this solution
     new_clauses.push_back(clause);
     solver->add_trusted_clause(clause);
 
-    // Print out the added blocking clause
+    // Comment out blocking clause printing
+    /*
     std::cout << "Added blocking clause: ";
     for (const auto& lit : clause) {
         std::cout << lit << " ";
     }
     std::cout << std::endl;
+    */
 
     // Signal that we want to continue searching
     return false;
@@ -218,7 +235,8 @@ int CadicalLean::cb_propagate () {
 }
 
 int CadicalLean::cb_add_reason_clause_lit (int plit) {
-    std::cout << "Adding reason clause literal: " << plit << std::endl;
+    // Comment out reason clause printing
+    // std::cout << "Adding reason clause literal: " << plit << std::endl;
     return 0;
 }
 
@@ -238,7 +256,8 @@ bool CadicalLean::check_edge_count() {
         auto end_time = std::chrono::high_resolution_clock::now();
         edge_check_time += std::chrono::duration<double>(end_time - start_time).count();
         
-        std::cout << "C++ edge count: " << edge_count << " (bound: " << edge_bound << ")" << std::endl;
+        // Comment out edge count printing
+        // std::cout << "C++ edge count: " << edge_count << " (bound: " << edge_bound << ")" << std::endl;
         return edge_count > edge_bound;
     }
     
@@ -258,7 +277,8 @@ bool CadicalLean::check_edge_count() {
     }
     std::string input_string = ss.str();
     
-    std::cout << "Checking edge count with input: " << input_string << std::endl;
+    // Comment out input printing
+    // std::cout << "Checking edge count with input: " << input_string << std::endl;
     
     // Call the Lean functions directly - matching edge_counter.cpp implementation
     lean_object* input_str = lean_mk_string(input_string.c_str());
@@ -275,7 +295,8 @@ bool CadicalLean::check_edge_count() {
     if (lean_is_scalar(output)) {
         uint8_t result = lean_unbox(output);
         exceeded = (result == 1);
-        std::cout << "Edge counter result: " << (int)result << std::endl;
+        // Comment out result printing
+        // std::cout << "Edge counter result: " << (int)result << std::endl;
     } else {
         std::cerr << "Error: Invalid result from edgesExceedBound" << std::endl;
     }
@@ -318,7 +339,8 @@ bool CadicalLean::check_degree_count() {
                 auto end_time = std::chrono::high_resolution_clock::now();
                 degree_check_time += std::chrono::duration<double>(end_time - start_time).count();
                 
-                std::cout << "C++ max degree: " << max_degree << " (bound: " << degree_bound << ")" << std::endl;
+                // Comment out max degree printing
+                // std::cout << "C++ max degree: " << max_degree << " (bound: " << degree_bound << ")" << std::endl;
                 return true;
             }
         }
@@ -326,7 +348,8 @@ bool CadicalLean::check_degree_count() {
         auto end_time = std::chrono::high_resolution_clock::now();
         degree_check_time += std::chrono::duration<double>(end_time - start_time).count();
         
-        std::cout << "C++ max degree: " << max_degree << " (bound: " << degree_bound << ")" << std::endl;
+        // Comment out max degree printing
+        // std::cout << "C++ max degree: " << max_degree << " (bound: " << degree_bound << ")" << std::endl;
         return false;
     }
     
@@ -346,7 +369,8 @@ bool CadicalLean::check_degree_count() {
     }
     std::string input_string = ss.str();
     
-    std::cout << "Checking degree count with input: " << input_string << std::endl;
+    // Comment out input printing
+    // std::cout << "Checking degree count with input: " << input_string << std::endl;
     
     // Call the Lean functions directly - matching degree_counter.cpp implementation
     lean_object* input_str = lean_mk_string(input_string.c_str());
@@ -363,7 +387,8 @@ bool CadicalLean::check_degree_count() {
     if (lean_is_scalar(output)) {
         uint8_t result = lean_unbox(output);
         exceeded = (result == 1);
-        std::cout << "Degree counter result: " << (int)result << std::endl;
+        // Comment out result printing
+        // std::cout << "Degree counter result: " << (int)result << std::endl;
     } else {
         std::cerr << "Error: Invalid result from DegreeExceedBound" << std::endl;
     }
