@@ -309,69 +309,24 @@ bool CadicalLean::check_degree_count() {
     degree_check_calls++;
     
     if (!use_lean) {
-        // Debug: Print partial assignment
-        std::cout << "DEBUG: Partial assignment: ";
-        for (int i = 0; i < num_edge_vars; i++) {
-            if (assign[i] == l_True) {
-                std::cout << (i + 1) << " ";
-            } else if (assign[i] == l_False) {
-                std::cout << -(i + 1) << " ";
-            } else {
-                std::cout << "0 ";
-            }
-        }
-        std::cout << std::endl;
-        
         // Direct C++ implementation for degree counting
         // Create an adjacency list representation
         std::vector<std::vector<int>> adj_list(n);
         
-        // Debug: Print adjacency matrix representation
-        std::cout << "DEBUG: Adjacency matrix:" << std::endl;
-        std::cout << "    ";
-        for (int j = 0; j < n; j++) {
-            std::cout << j << " ";
-        }
-        std::cout << std::endl;
-        
         // Correctly map variables to the adjacency matrix (column by column)
         for (int i = 0; i < n; i++) {
-            std::cout << i << " | ";
             for (int j = 0; j < n; j++) {
-                if (i == j) {
-                    std::cout << "- ";
-                } else if (j > i) {
+                if (i != j && j > i) {
                     // Column-by-column mapping
                     int col = j;
                     int row = i;
                     int edge_idx = (col * (col - 1)) / 2 + row;
-                    bool has_edge = (assign[edge_idx] == l_True);
-                    std::cout << (has_edge ? "1 " : "0 ");
-                    
-                    if (has_edge) {
+                    if (assign[edge_idx] == l_True) {
                         adj_list[i].push_back(j);
                         adj_list[j].push_back(i);
                     }
-                } else { // j < i
-                    // Column-by-column mapping
-                    int col = i;
-                    int row = j;
-                    int edge_idx = (col * (col - 1)) / 2 + row;
-                    bool has_edge = (assign[edge_idx] == l_True);
-                    std::cout << (has_edge ? "1 " : "0 ");
                 }
             }
-            std::cout << std::endl;
-        }
-        
-        // Debug: Print adjacency list
-        std::cout << "DEBUG: Adjacency list:" << std::endl;
-        for (int i = 0; i < n; i++) {
-            std::cout << "  Vertex " << i << " connected to: ";
-            for (int neighbor : adj_list[i]) {
-                std::cout << neighbor << " ";
-            }
-            std::cout << "(degree: " << adj_list[i].size() << ")" << std::endl;
         }
         
         // Check if any vertex has degree exceeding or equal to the bound
@@ -381,21 +336,12 @@ bool CadicalLean::check_degree_count() {
             if (static_cast<int>(adj_list[i].size()) >= degree_bound) {
                 auto end_time = std::chrono::high_resolution_clock::now();
                 degree_check_time += std::chrono::duration<double>(end_time - start_time).count();
-                
-                // Debug: Print violation information
-                std::cout << "DEBUG: Degree bound violated at vertex " << i 
-                          << " with degree " << adj_list[i].size() 
-                          << " (bound: " << degree_bound << ")" << std::endl;
                 return true;
             }
         }
         
         auto end_time = std::chrono::high_resolution_clock::now();
         degree_check_time += std::chrono::duration<double>(end_time - start_time).count();
-        
-        // Debug: Print max degree information
-        std::cout << "DEBUG: Max degree found: " << max_degree 
-                  << " (bound: " << degree_bound << ")" << std::endl;
         return false;
     }
     
@@ -478,4 +424,5 @@ void CadicalLean::print_statistics() {
     }
     
     std::cout << "================================\n";
+}
 }
