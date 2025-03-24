@@ -313,37 +313,35 @@ bool CadicalLean::check_degree_count() {
         // Create an adjacency list representation
         std::vector<std::vector<int>> adj_list(n);
         
-        // Populate adjacency list based on the current assignment
-        int idx = 0;
+        // Correctly map variables to the adjacency matrix (column by column)
         for (int i = 0; i < n; i++) {
-            for (int j = i + 1; j < n; j++) {
-                if (assign[idx] == l_True) {
-                    adj_list[i].push_back(j);
-                    adj_list[j].push_back(i);
+            for (int j = 0; j < n; j++) {
+                if (i != j && j > i) {
+                    // Column-by-column mapping
+                    int col = j;
+                    int row = i;
+                    int edge_idx = (col * (col - 1)) / 2 + row;
+                    if (assign[edge_idx] == l_True) {
+                        adj_list[i].push_back(j);
+                        adj_list[j].push_back(i);
+                    }
                 }
-                idx++;
             }
         }
         
-        // Check if any vertex has degree exceeding the bound
+        // Check if any vertex has degree exceeding or equal to the bound
         int max_degree = 0;
         for (int i = 0; i < n; i++) {
             max_degree = std::max(max_degree, static_cast<int>(adj_list[i].size()));
-            if (static_cast<int>(adj_list[i].size()) > degree_bound) {
+            if (static_cast<int>(adj_list[i].size()) >= degree_bound) {
                 auto end_time = std::chrono::high_resolution_clock::now();
                 degree_check_time += std::chrono::duration<double>(end_time - start_time).count();
-                
-                // Comment out max degree printing
-                // std::cout << "C++ max degree: " << max_degree << " (bound: " << degree_bound << ")" << std::endl;
                 return true;
             }
         }
         
         auto end_time = std::chrono::high_resolution_clock::now();
         degree_check_time += std::chrono::duration<double>(end_time - start_time).count();
-        
-        // Comment out max degree printing
-        // std::cout << "C++ max degree: " << max_degree << " (bound: " << degree_bound << ")" << std::endl;
         return false;
     }
     
