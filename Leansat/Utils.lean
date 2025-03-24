@@ -3,7 +3,6 @@ import Mathlib.Data.Matrix.Basic
 import Mathlib.Tactic.Linarith
 import Mathlib.Combinatorics.SimpleGraph.Finite
 import Mathlib.Combinatorics.SimpleGraph.AdjMatrix
-
 --------------------------------------------------
 /-
 The expected input format is the upper triangular portion of the edge adjacency matrix,
@@ -116,24 +115,16 @@ theorem readInput_Int_correct' : ∀ (input : List Int) (i : ℕ), i < (readInpu
 
 --------------------------------------------------
 -- Function to compute the vertices (i, j) associated with the k-th edge
-def edge2Ver (k N : ℕ) : Option (ℕ × ℕ) :=
- if k ≠ 0 ∧ k ≤ N then
-    let j :=  (Nat.sqrt (1 + 8 * (k - 1)) + 1) / 2
-    if j < N then
-      let i := k - 1 - (j * (j - 1)) / 2
-      if i < j then
-        some (i, j)
-      else
-        none
-    else
-      none
-  else
-    none
--- #eval edge2Ver 1 3
+def edge2Ver (k N : ℕ) (_ : k < N) : ℕ × ℕ :=
+  let j :=  (Nat.sqrt (1 + 8 * (k)) + 1) / 2
+  let i := k - (j * (j - 1)) / 2
+  (i, j)
 
+-- #eval edge2Ver 2 3 (by simp)
+-- #eval edge2Ver 0 2 (by simp)
 
 -- Function to compute the index in the adjacency list for the edge between vertices i and j
-def ver2Edge (i j : ℕ) (H : i < j): ℕ :=
+def ver2Edge (i j : ℕ) (_ : i < j): ℕ :=
   i + j * (j - 1) / 2
 
 def graphOrderFromListLen (N : ℕ) : ℕ :=
@@ -197,3 +188,66 @@ def SimpleGraph.mk_list (adjList : List (Fin 2)) : SimpleGraph (Fin (graphOrderF
 instance mk_List_DecidableRelAdj (adjList : List (Fin 2)): DecidableRel (SimpleGraph.mk_list (adjList)).Adj := by
   simp[SimpleGraph.mk_list]
   infer_instance
+
+
+-- Function to compute the vertices (i, j) associated with the k-th edge
+def edge2Ver' (k : ℕ) : ℕ × ℕ :=
+  let j := (Nat.sqrt (1 + 8 * (k)) + 1) / 2
+  let i := k - (j * (j - 1)) / 2
+  (i, j)
+
+-- #eval edge2Ver 2 3 (by simp)
+-- #eval edge2Ver 0 2 (by simp)
+
+
+-- -- Function to compute the index in the adjacency list for the edge between vertices i and j
+-- def ver2Edge' (i j : ℕ) : ℕ :=
+--   if i < j then
+--   i + j * (j - 1) / 2
+--   else
+--   j + i * (i - 1) / 2
+
+-- def ver2Edge'_inj : ∀ i₁ j₁ i₂ j₂, ver2Edge' i₁ j₁ = ver2Edge' i₂ j₂ → i₁ = i₂ ∧ j₁ = j₂ := by
+--   intros i₁ j₁ i₂ j₂ H
+--   simp [ver2Edge'] at H
+--   by_cases i₁_lt_j₁ : i₁ < j₁
+--   · simp_all
+--     by_cases i₂_lt_j₂ : i₂ < j₂
+--     · simp_all
+
+
+-- theorem ver2Edge_inj : ∀ (i j i' j' : ℕ) (H : i < j) (H' : i' < j') (Hij : ver2Edge i j H = ver2Edge i' j' H'), i = i' ∧ j = j' := by
+--   intros i j i' j' H H' Hij
+--   simp [ver2Edge] at Hij
+
+--   have _ :  j ≠ 0 := sorry
+--   have _ :  j' ≠ 0 := sorry
+--   have _ : 2 ∣ j * (j - 1)  := by sorry
+--   have _ : 2 ∣ j' * (j' - 1)  := by sorry
+
+--   by_contra!
+--   by_cases ieq : i = i'
+--   simp_all
+--   rcases lt_or_gt_of_ne this with h | h
+--   · have _ : j - 1 < j' - 1 := by apply Nat.pred_lt_pred; simp_all; simp_all
+--     have _ : j * (j - 1) < j' * (j' - 1) := by
+--       apply mul_lt_mul
+--       assumption
+--       linarith
+--       sorry
+--       simp
+
+--     simp_all
+--   · sorry
+--   simp_all
+--   rcases lt_or_gt_of_ne ieq with h | h
+--   rcases Nat.lt_trichotomy j j' with jlt | jeq | jgt
+--   · sorry
+--   · simp_all
+--   · sorry
+--   rcases Nat.lt_trichotomy j j' with jlt | jeq | jgt
+--   · sorry
+--   · simp_all
+--   · sorry
+
+-- theorem ver2Edge_suj : ∀ k , ∃ H:(i < j), ver2Edge i j H = k := by
