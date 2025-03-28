@@ -20,26 +20,26 @@ theorem countEdges_correct (input: List Int) : countEdges (readInput_Int input) 
 --------------------------------------------------
 @[export edgesExceedBound]
 -- Function to check if the number of edges is greater than or equal to an upperbound
-def edgesExceedBound (adjList : List (Fin 2)) (upperbound : ℕ) : Fin 2 :=
+def edgesExceedBound (adjList : List (Fin 2)) (upperbound : ℕ) : Bool :=
   let numEdges := countEdges adjList
-  if numEdges >= upperbound then 1 else 0
+  if numEdges >= upperbound then true else false
 
 theorem edgesExceedBound_correct (adjList : List (Fin 2)) (upperbound : ℕ) :
-  edgesExceedBound adjList upperbound = 1 ↔ countEdges adjList ≥ upperbound := by simp [edgesExceedBound]
+  edgesExceedBound adjList upperbound = true ↔ countEdges adjList ≥ upperbound := by simp [edgesExceedBound]
 --------------------------------------------------
 @[export NCliquesExceedBound]
 -- Function to check if the number of N-Cliques is greater than or equal to an upperbound
-def NCliquesExceedBound (adjList : List (Fin 2)) (N : ℕ) (upperbound : ℕ): Fin 2 :=
+def NCliquesExceedBound (adjList : List (Fin 2)) (N : ℕ) (upperbound : ℕ) : Bool :=
   let G := SimpleGraph.mk_list adjList
   let numCLiques := (Finset.univ.filter (λ S ↦ G.IsNClique N S) |>.card)
-  if numCLiques >= upperbound then 1 else 0
+  if numCLiques >= upperbound then true else false
 --------------------------------------------------
 @[export DegreeExceedBound]
 -- Function to check if there exist a vertex whose degree is greater than or equal to an upperbound
-def DegreeExceedBound (adjList : List (Fin 2)) (upperbound : ℕ) : Fin 2 :=
+def DegreeExceedBound (adjList : List (Fin 2)) (upperbound : ℕ) : Bool :=
   let G := SimpleGraph.mk_list adjList
-  if G.maxDegree ≥ upperbound then 1 else 0
+  if G.maxDegree ≥ upperbound then true else false
 
 theorem DegreeExceedBound_correct (adjList : List (Fin 2)) :
-  ∀ upperbound : ℕ, DegreeExceedBound adjList upperbound = 1 ↔ (SimpleGraph.mk_list adjList).maxDegree ≥ upperbound := by simp[DegreeExceedBound]
+  ∀ upperbound : ℕ, DegreeExceedBound adjList upperbound = true ↔ (SimpleGraph.mk_list adjList).maxDegree ≥ upperbound := by simp[DegreeExceedBound]
 --------------------------------------------------
