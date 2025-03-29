@@ -287,10 +287,9 @@ bool CadicalLean::check_edge_count() {
     
     bool exceeded = false;
     if (lean_is_scalar(output)) {
-        uint8_t result = lean_unbox(output);
-        exceeded = (result == 1);
+        exceeded = lean_unbox(output) != 0;
         // Comment out result printing
-        // std::cout << "Edge counter result: " << (int)result << std::endl;
+        // std::cout << "Edge counter result: " << (exceeded ? "true" : "false") << std::endl;
     } else {
         std::cerr << "Error: Invalid result from edgesExceedBound" << std::endl;
     }
@@ -377,10 +376,9 @@ bool CadicalLean::check_degree_count() {
     
     bool exceeded = false;
     if (lean_is_scalar(output)) {
-        uint8_t result = lean_unbox(output);
-        exceeded = (result == 1);
+        exceeded = lean_unbox(output) != 0;
         // Comment out result printing
-        // std::cout << "Degree counter result: " << (int)result << std::endl;
+        // std::cout << "Degree counter result: " << (exceeded ? "true" : "false") << std::endl;
     } else {
         std::cerr << "Error: Invalid result from DegreeExceedBound" << std::endl;
     }
