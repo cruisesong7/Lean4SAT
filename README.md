@@ -97,7 +97,7 @@ The `main.sh` script is used to generate the SAT encodings (in CNF format) for s
         *   `--strict-edge-bound <bound>`: Enforces a strict upper bound on the number of edges (literals assigned true).
         *   `--strict-degree-bound <bound>`: Enforces a strict upper bound on the maximum degree of any vertex.
 
-    *   **Example (R(3,7) on 23 vertices with edge bound 100):**
+    *   **Example (R(6,3) on 17 vertices with edge bound 97):**
         First, generate the base CNF:
         ```bash
         ./main.sh 17 6 3
