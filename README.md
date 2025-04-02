@@ -2,6 +2,14 @@
 
 This repository implements propagators for Ramsey theory in Lean, integrating with the CaDiCaL solver via `cadical-lean` for SAT-based enumeration. The project builds on Lean's reverse foreign function interface (reverse-FFI) and includes utilities for input processing, edge counting, and triangle counting.
 
+### Project Structure
+
+*   **`leansat/`**: Contains the Lean code implementing the propagators that interface with the SAT solver.
+*   **`RamseyLemmas/`**: Contains the Lean formalizations of Ramsey theory concepts and related lemmas used by the propagators.
+*   **`cadical-lean/`**: Submodule or directory containing the modified CaDiCaL solver and its Lean FFI bindings.
+*   **`*.cpp` / `*.h`**: C++ code for examples (like `edge_counter.cpp`) and potentially interfacing code.
+*   **`*.sh`**: Shell scripts for building (`build.sh`) and generating CNF files (`main.sh`).
+
 ### Installation and Setup
 
 Follow these steps to set up the project:
